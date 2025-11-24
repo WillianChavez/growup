@@ -1,36 +1,198 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 GrowUp App
 
-## Getting Started
+Una aplicación progresiva (PWA) de crecimiento personal construida con Next.js 16, que centraliza el seguimiento de hábitos, lectura, finanzas personales y metas.
 
-First, run the development server:
+## ✨ Características
+
+### 🎯 Hábitos
+- Tracker diario interactivo con checkboxes
+- Calendario mensual con heatmap de completitud
+- Categorías personalizables con emojis
+- Gráficos de progreso
+- Vista organizada por tabs (Hoy, Calendario, Todos)
+
+### 💰 Finanzas Personales
+- Dos botones dedicados: "Agregar Ingreso" y "Agregar Gasto"
+- Vista agrupada por mes (collapsible)
+- Categorías personalizables con emojis
+- Gráficos de evolución (ingresos, gastos, balance)
+- Filtros por fecha
+
+### 📚 Lectura
+- Seguimiento de libros (leyendo, completados, pendientes)
+- Gestión de citas favoritas
+- Estadísticas de lectura
+
+### 🎯 Metas
+- Seguimiento de objetivos personales
+- Milestones y progreso
+- Prioridades y categorías
+
+### 📊 Dashboard
+- Resumen de todas las áreas
+- Gráficos interactivos
+- Quick stats y acciones rápidas
+
+## 🛠️ Stack Tecnológico
+
+- **Framework**: Next.js 16 (App Router)
+- **Base de Datos**: Prisma + SQLite
+- **Autenticación**: JWT con jose
+- **UI**: shadcn/ui + Tailwind CSS
+- **Animaciones**: Framer Motion
+- **Gráficos**: Recharts
+- **Validación**: Zod
+- **Lenguaje**: TypeScript
+
+## 🚀 Inicio Rápido
+
+### 1. Instalar dependencias
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configurar base de datos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+El archivo `.env.local` ya está configurado con SQLite:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+DATABASE_URL="file:./dev.db"
+```
 
-## Learn More
+### 3. Aplicar migraciones
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm prisma db push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Iniciar la aplicación
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev
+```
 
-## Deploy on Vercel
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 5. ¡Listo para usar!
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Las categorías por defecto se crean **automáticamente** al registrar un usuario nuevo.
+
+**Categorías incluidas automáticamente:**
+- **Hábitos**: 10 categorías (Salud, Productividad, Aprendizaje, Fitness, etc.)
+- **Finanzas**: 23 categorías (15 gastos + 8 ingresos)
+
+Si ya tienes usuarios sin categorías, ejecuta:
+```bash
+pnpm prisma:seed
+```
+
+## 📁 Estructura del Proyecto
+
+```
+growup/
+├── prisma/
+│   ├── schema.prisma    # Esquema de base de datos
+│   └── seed.ts          # Seed de datos iniciales
+├── src/
+│   ├── app/
+│   │   ├── (auth)/      # Páginas de autenticación
+│   │   ├── (dashboard)/ # Páginas principales
+│   │   └── api/         # API Routes
+│   ├── components/      # Componentes React
+│   ├── hooks/           # Custom hooks
+│   ├── lib/             # Utilidades
+│   ├── services/        # Lógica de negocio
+│   ├── types/           # Tipos TypeScript
+│   └── validations/     # Esquemas Zod
+└── package.json
+```
+
+## 🔧 Scripts Disponibles
+
+```bash
+pnpm dev          # Inicia el servidor de desarrollo
+pnpm build        # Construye para producción
+pnpm start        # Inicia el servidor de producción
+pnpm type-check   # Verifica tipos TypeScript
+pnpm prisma:seed  # Ejecuta el seed de datos
+```
+
+## 📊 Prisma Studio
+
+Para explorar y modificar la base de datos visualmente:
+
+```bash
+pnpm prisma studio
+```
+
+## 🎨 Componentes UI
+
+El proyecto utiliza shadcn/ui. Para agregar nuevos componentes:
+
+```bash
+pnpm dlx shadcn@latest add [component-name]
+```
+
+Componentes instalados:
+- button, input, label, card, dialog
+- select, textarea, calendar, dropdown-menu
+- tabs, badge, avatar, progress
+- separator, switch, sonner, popover
+
+## 🔐 Autenticación
+
+El sistema de autenticación incluye:
+- Registro de usuarios con email y contraseña
+- Login con JWT (almacenado en cookies HTTP-only)
+- Middleware para proteger rutas
+- Logout
+
+## 📱 PWA
+
+La aplicación está configurada como PWA con:
+- Manifest.json
+- Soporte offline (próximamente)
+- Instalable en dispositivos móviles
+
+## 🐛 Solución de Problemas
+
+### Error: "Failed to fetch..."
+- Asegúrate de haber creado un usuario
+- Verifica que el seed se haya ejecutado con el userId correcto
+
+### Reset de base de datos
+```bash
+pnpm prisma db push --force-reset
+```
+
+### Ver logs de Prisma
+```bash
+# En src/lib/prisma.ts, descomentar:
+# log: ['query', 'error', 'warn'],
+```
+
+## 📚 Documentación Adicional
+
+- [IMPLEMENTACION_COMPLETA.md](./IMPLEMENTACION_COMPLETA.md) - Detalles completos de la implementación
+- [prisma/schema.prisma](./prisma/schema.prisma) - Esquema de base de datos
+- [Next.js Docs](https://nextjs.org/docs)
+- [Prisma Docs](https://www.prisma.io/docs)
+- [shadcn/ui](https://ui.shadcn.com)
+
+## 🤝 Contribuir
+
+Este es un proyecto personal de crecimiento. Si deseas contribuir:
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📝 Licencia
+
+Este proyecto es de código abierto y está disponible bajo la licencia MIT.
+
+---
+
+Hecho con ❤️ y Next.js
