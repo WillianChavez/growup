@@ -56,10 +56,6 @@ pnpm install
 
 El archivo `.env.local` ya está configurado con SQLite:
 
-```bash
-DATABASE_URL="file:./dev.db"
-```
-
 ### 3. Aplicar migraciones
 
 ```bash
@@ -144,7 +140,6 @@ Componentes instalados:
 
 El sistema de autenticación incluye:
 - Registro de usuarios con email y contraseña
-- Login con JWT (almacenado en cookies HTTP-only)
 - Middleware para proteger rutas
 - Logout
 
@@ -192,7 +187,5 @@ Este es un proyecto personal de crecimiento. Si deseas contribuir:
 ## 📝 Licencia
 
 Este proyecto es de código abierto y está disponible bajo la licencia MIT.
-
----
 
 Hecho con ❤️ y Next.js

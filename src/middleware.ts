@@ -7,8 +7,7 @@ const protectedRoutes = ['/dashboard', '/habits', '/reading', '/finance', '/goal
 // Rutas de autenticación (redirigir si ya está autenticado)
 const authRoutes = ['/login', '/register'];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('auth-token')?.value;
 
