@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const goalSchema = z.object({
   title: z.string().min(1, 'El título es requerido').max(200, 'El título es muy largo'),
-  description: z.string().max(1000).optional(),
+  description: z.string().max(1000).optional().or(z.literal('')),
   category: z.enum([
     'personal',
     'professional',
@@ -15,15 +15,15 @@ export const goalSchema = z.object({
   ]),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   status: z.enum(['not-started', 'in-progress', 'completed', 'abandoned']).default('not-started'),
-  targetDate: z.date().optional(),
+  targetDate: z.coerce.date().optional().nullable(),
   progress: z.number().min(0).max(100).default(0),
   milestones: z.array(
     z.object({
       title: z.string().min(1, 'El título del milestone es requerido'),
       completed: z.boolean().default(false),
-      completedAt: z.date().optional(),
+      completedAt: z.coerce.date().optional().nullable(),
     })
-  ).optional(),
+  ).optional().default([]),
 });
 
 export type GoalInput = z.infer<typeof goalSchema>;

@@ -82,14 +82,14 @@ export default function FinancePage() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+        <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              Finanzas Personales
-            </h1>
+            Finanzas Personales
+          </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Gestiona tus ingresos y gastos
-            </p>
-          </div>
+            Gestiona tus ingresos y gastos
+          </p>
+        </div>
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <Button
               variant="outline"
@@ -119,20 +119,20 @@ export default function FinancePage() {
             >
               💳 Deudas
             </Button>
-            <Button
+          <Button
               className="bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 flex-1 sm:flex-none text-sm"
-              onClick={() => handleOpenDialog('income')}
-            >
+            onClick={() => handleOpenDialog('income')}
+          >
               <PlusCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="hidden xs:inline">Agregar </span>Ingreso
-            </Button>
-            <Button
+          </Button>
+          <Button
               className="bg-linear-to-r from-red-500 to-orange-600 text-white hover:from-red-600 hover:to-orange-700 flex-1 sm:flex-none text-sm"
-              onClick={() => handleOpenDialog('expense')}
-            >
+            onClick={() => handleOpenDialog('expense')}
+          >
               <MinusCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="hidden xs:inline">Agregar </span>Gasto
-            </Button>
+          </Button>
           </div>
         </div>
       </div>

@@ -73,9 +73,11 @@ export async function POST(request: NextRequest) {
       description: validation.data.description ?? null,
       targetDate: validation.data.targetDate ?? null,
       milestones: validation.data.milestones
-        ? validation.data.milestones.map((m, index) => ({
+        ? validation.data.milestones.map((m) => ({
             id: crypto.randomUUID(),
-            ...m,
+            title: m.title,
+            completed: m.completed,
+            completedAt: m.completedAt ?? undefined,
           }))
         : null,
     });

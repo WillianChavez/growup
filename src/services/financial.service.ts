@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { Asset, Debt, AssetFormData, DebtFormData, FinancialDashboardKPIs } from '@/types/financial.types';
 import { BudgetService } from './budget.service';
 

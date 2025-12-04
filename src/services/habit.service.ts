@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { Habit, HabitEntry, HabitStats, DailyHabitView, MonthlyHabitData } from '@/types/habit.types';
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 

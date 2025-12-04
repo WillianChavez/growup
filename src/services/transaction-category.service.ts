@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { TransactionCategory } from '@/types/finance.types';
 
 export class TransactionCategoryService {

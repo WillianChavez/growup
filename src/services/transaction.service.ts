@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { Transaction, FinanceStats, CategoryTotal, MonthlyTransactionGroup } from '@/types/finance.types';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 

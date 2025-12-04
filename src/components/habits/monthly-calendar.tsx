@@ -78,7 +78,7 @@ export function MonthlyCalendar() {
       <CardHeader>
         <div className="flex flex-col gap-4">
           {/* Title and Today Button */}
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
             <CardTitle className="text-lg sm:text-xl">Calendario de Hábitos</CardTitle>
             <Button size="sm" variant="outline" onClick={goToToday} className="shrink-0">
               <span className="hidden xs:inline">Hoy</span>

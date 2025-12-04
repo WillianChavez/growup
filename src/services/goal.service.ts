@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { Goal, GoalStats, Milestone } from '@/types/goal.types';
 import { getYearRange, getMonthRange } from '@/lib/date-utils';
 

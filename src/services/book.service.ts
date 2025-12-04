@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import type { Book, BookQuote, ReadingStats } from '@/types/book.types';
 import { getYearRange, getMonthRange } from '@/lib/date-utils';
 
