@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { AssetDialog } from '@/components/financial/asset-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Asset, AssetFormData } from '@/types/financial.types';
 
 export default function AssetsPage() {
@@ -15,6 +16,8 @@ export default function AssetsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadAssets();
@@ -50,12 +53,18 @@ export default function AssetsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este activo?')) return;
-    
-    const response = await fetch(`/api/financial/assets/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      await loadAssets();
+  const handleDelete = (id: string) => {
+    setAssetToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (assetToDelete) {
+      const response = await fetch(`/api/financial/assets/${assetToDelete}`, { method: 'DELETE' });
+      if (response.ok) {
+        await loadAssets();
+        setAssetToDelete(null);
+      }
     }
   };
 
@@ -237,6 +246,17 @@ export default function AssetsPage() {
         }}
         asset={editingAsset}
         onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="¿Eliminar activo?"
+        description="Esta acción no se puede deshacer. Se eliminará el activo permanentemente."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { DebtDialog } from '@/components/financial/debt-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Debt, DebtFormData } from '@/types/financial.types';
 
 export default function DebtsPage() {
@@ -18,6 +19,8 @@ export default function DebtsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [debtToDelete, setDebtToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadDebts();
@@ -53,12 +56,18 @@ export default function DebtsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta deuda?')) return;
-    
-    const response = await fetch(`/api/financial/debts/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      await loadDebts();
+  const handleDelete = (id: string) => {
+    setDebtToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (debtToDelete) {
+      const response = await fetch(`/api/financial/debts/${debtToDelete}`, { method: 'DELETE' });
+      if (response.ok) {
+        await loadDebts();
+        setDebtToDelete(null);
+      }
     }
   };
 
@@ -278,6 +287,17 @@ export default function DebtsPage() {
         }}
         debt={editingDebt}
         onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="¿Eliminar deuda?"
+        description="Esta acción no se puede deshacer. Se eliminará la deuda permanentemente."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

@@ -47,17 +47,21 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
       transition={{ delay: index * 0.05 }}
     >
       <Card className="group hover:shadow-lg transition-all overflow-hidden">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
+        <CardHeader className="pb-3 p-4 sm:p-6">
+          <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg truncate">{book.title}</CardTitle>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <CardTitle className="text-base sm:text-lg truncate">{book.title}</CardTitle>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 truncate">
                 {book.author}
               </p>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -77,25 +81,25 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
             </DropdownMenu>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
           {/* Progress */}
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-[10px] sm:text-xs text-slate-500">
               <span>
                 {book.currentPage} / {book.pages} páginas
               </span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-1.5 sm:h-2" />
           </div>
 
           {/* Status and Genre */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <Badge className={statusColors[book.status]}>
+            <Badge className={cn(statusColors[book.status], "text-[10px] sm:text-xs")}>
               {statusLabels[book.status]}
             </Badge>
             {book.genre && (
-              <span className="text-xs text-slate-500">
+              <span className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[120px] sm:max-w-none">
                 {book.genre}
               </span>
             )}
@@ -103,12 +107,12 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
 
           {/* Rating */}
           {book.rating && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
                   className={cn(
-                    'h-4 w-4',
+                    'h-3 w-3 sm:h-4 sm:w-4',
                     i < book.rating! ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300'
                   )}
                 />

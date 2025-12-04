@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { PlusCircle, MinusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthlyTransactions } from '@/hooks/useMonthlyTransactions';
 import { TransactionDialog } from '@/components/finance/transaction-dialog';
-import { TransactionCard } from '@/components/finance/transaction-card';
 import { MonthlyGroupView } from '@/components/finance/monthly-group-view';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Transaction, TransactionFormData, MonthlyTransactionGroup } from '@/types/finance.types';
 
 export default function FinancePage() {
@@ -18,6 +19,9 @@ export default function FinancePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   
   const { fetchTransactions, createTransaction, updateTransaction, deleteTransaction, isLoading } = useTransactions();
   const { fetchMonthlyGroups } = useMonthlyTransactions();
@@ -58,11 +62,17 @@ export default function FinancePage() {
     await loadMonthlyGroups();
   };
 
-  const handleDeleteTransaction = async (transactionId: string) => {
-    if (confirm('¿Estás seguro de eliminar esta transacción?')) {
-      await deleteTransaction(transactionId);
+  const handleDeleteTransaction = (transactionId: string) => {
+    setTransactionToDelete(transactionId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (transactionToDelete) {
+      await deleteTransaction(transactionToDelete);
       await loadTransactions();
       await loadMonthlyGroups();
+      setTransactionToDelete(null);
     }
   };
 
@@ -120,14 +130,14 @@ export default function FinancePage() {
               💳 Deudas
             </Button>
           <Button
-              className="bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 flex-1 sm:flex-none text-sm"
+              className="bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 flex-1 sm:flex-none text-sm hidden sm:flex"
             onClick={() => handleOpenDialog('income')}
           >
               <PlusCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="hidden xs:inline">Agregar </span>Ingreso
           </Button>
           <Button
-              className="bg-linear-to-r from-red-500 to-orange-600 text-white hover:from-red-600 hover:to-orange-700 flex-1 sm:flex-none text-sm"
+              className="bg-linear-to-r from-red-500 to-orange-600 text-white hover:from-red-600 hover:to-orange-700 flex-1 sm:flex-none text-sm hidden sm:flex"
             onClick={() => handleOpenDialog('expense')}
           >
               <MinusCircle className="mr-1 sm:mr-2 h-4 w-4" />
@@ -181,61 +191,58 @@ export default function FinancePage() {
         </Card>
       </div>
 
-      {/* Main Content with Tabs */}
-      <Tabs defaultValue="monthly" className="w-full">
-        <TabsList>
-          <TabsTrigger value="monthly">Vista Mensual</TabsTrigger>
-          <TabsTrigger value="all">Todas las Transacciones</TabsTrigger>
-        </TabsList>
-
-        {/* Monthly Grouped View */}
-        <TabsContent value="monthly" className="mt-6">
+      {/* Main Content - Monthly View */}
+      <div className="space-y-4">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-full" />
+              </CardContent>
+            </Card>
+          ))
+        ) : monthlyGroups.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="relative mb-6 inline-block">
+                <div className="absolute inset-0 bg-linear-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-2xl" />
+                <PlusCircle className="relative h-20 w-20 text-blue-500 dark:text-blue-400" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                No hay transacciones registradas
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
+                Comienza a registrar tus ingresos y gastos para tener un mejor control de tus finanzas.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => handleOpenDialog('income')}
+                  className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Agregar Ingreso
+                </Button>
+                <Button 
+                  onClick={() => handleOpenDialog('expense')}
+                  className="bg-linear-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700"
+                >
+                  <MinusCircle className="mr-2 h-4 w-4" />
+                  Agregar Gasto
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
           <MonthlyGroupView
             groups={monthlyGroups}
             onEdit={(t) => handleOpenDialog(t.type, t)}
             onDelete={handleDeleteTransaction}
           />
-        </TabsContent>
+        )}
+      </div>
 
-        {/* All Transactions */}
-        <TabsContent value="all" className="mt-6">
-          <div className="space-y-2">
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-20 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" />
-              ))
-            ) : transactions.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-slate-500 mb-4">No tienes transacciones todavía</p>
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={() => handleOpenDialog('income')}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Agregar Ingreso
-                    </Button>
-                    <Button onClick={() => handleOpenDialog('expense')}>
-                      <MinusCircle className="mr-2 h-4 w-4" />
-                      Agregar Gasto
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              transactions.map((transaction, index) => (
-                <TransactionCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  index={index}
-                  onEdit={(t) => handleOpenDialog(t.type, t)}
-                  onDelete={handleDeleteTransaction}
-                />
-              ))
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Dialog */}
+      {/* Dialogs */}
       <TransactionDialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -246,6 +253,39 @@ export default function FinancePage() {
         type={transactionType}
         onSave={handleSaveTransaction}
       />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="¿Eliminar transacción?"
+        description="Esta acción no se puede deshacer. La transacción será eliminada permanentemente."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+      />
+
+      {/* Floating Action Buttons para móvil */}
+      {isMobile && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 sm:hidden">
+          <Button
+            onClick={() => handleOpenDialog('income')}
+            size="lg"
+            className="h-14 w-14 rounded-full shadow-lg bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all hover:scale-110 active:scale-95"
+            aria-label="Agregar Ingreso"
+          >
+            <PlusCircle className="h-5 w-5" />
+          </Button>
+          <Button
+            onClick={() => handleOpenDialog('expense')}
+            size="lg"
+            className="h-14 w-14 rounded-full shadow-lg bg-linear-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 transition-all hover:scale-110 active:scale-95"
+            aria-label="Agregar Gasto"
+          >
+            <MinusCircle className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

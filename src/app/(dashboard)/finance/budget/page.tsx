@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { BudgetDistributionChart } from '@/components/budget/budget-distribution-chart';
 import { IncomeSourceDialog } from '@/components/budget/income-source-dialog';
 import { RecurringExpenseDialog } from '@/components/budget/recurring-expense-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { BudgetSummary, IncomeSource, RecurringExpense, IncomeSourceFormData, RecurringExpenseFormData } from '@/types/budget.types';
 
 export default function BudgetPage() {
@@ -21,6 +22,9 @@ export default function BudgetPage() {
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeSource | undefined>();
   const [editingExpense, setEditingExpense] = useState<RecurringExpense | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<'income' | 'expense' | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadBudgetData();
@@ -69,13 +73,10 @@ export default function BudgetPage() {
     }
   };
 
-  const handleDeleteIncome = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta fuente de ingreso?')) return;
-    
-    const response = await fetch(`/api/budget/income-sources/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      await loadBudgetData();
-    }
+  const handleDeleteIncome = (id: string) => {
+    setDeleteType('income');
+    setItemToDelete(id);
+    setDeleteDialogOpen(true);
   };
 
   const handleSaveExpense = async (data: RecurringExpenseFormData) => {
@@ -93,12 +94,24 @@ export default function BudgetPage() {
     }
   };
 
-  const handleDeleteExpense = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este gasto recurrente?')) return;
+  const handleDeleteExpense = (id: string) => {
+    setDeleteType('expense');
+    setItemToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete || !deleteType) return;
     
-    const response = await fetch(`/api/budget/recurring-expenses/${id}`, { method: 'DELETE' });
+    const endpoint = deleteType === 'income' 
+      ? `/api/budget/income-sources/${itemToDelete}`
+      : `/api/budget/recurring-expenses/${itemToDelete}`;
+    
+    const response = await fetch(endpoint, { method: 'DELETE' });
     if (response.ok) {
       await loadBudgetData();
+      setItemToDelete(null);
+      setDeleteType(null);
     }
   };
 
@@ -287,6 +300,17 @@ export default function BudgetPage() {
         }}
         expense={editingExpense}
         onSave={handleSaveExpense}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={deleteType === 'income' ? '¿Eliminar fuente de ingreso?' : '¿Eliminar gasto recurrente?'}
+        description={`Esta acción no se puede deshacer. Se eliminará ${deleteType === 'income' ? 'la fuente de ingreso' : 'el gasto recurrente'} permanentemente.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

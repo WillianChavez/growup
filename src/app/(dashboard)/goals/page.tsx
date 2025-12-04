@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Target, CheckCircle2, Trophy } from 'lucide-react';
+import { Plus, Target, CheckCircle2, Trophy, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +9,11 @@ import { useGoals } from '@/hooks/useGoals';
 import { GoalDialog } from '@/components/goals/goal-dialog';
 import { GoalAccordionItem } from '@/components/goals/goal-accordion-item';
 import { GoalsCalendar } from '@/components/goals/goals-calendar';
+import { GoalTimeline } from '@/components/goals/goal-timeline';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { GoalCardSkeleton } from '@/components/ui/skeleton';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Goal, GoalFormData, Milestone } from '@/types/goal.types';
 
 export default function GoalsPage() {
@@ -18,6 +23,9 @@ export default function GoalsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
   const [openGoals, setOpenGoals] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   const { fetchGoals, createGoal, updateGoal, deleteGoal, isLoading } = useGoals();
 
   const loadGoals = async () => {
@@ -44,12 +52,18 @@ export default function GoalsPage() {
     await loadGoals();
   }, [editingGoal, updateGoal, createGoal]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDeleteGoal = useCallback(async (goalId: string) => {
-    if (confirm('¿Estás seguro de eliminar esta meta?')) {
-      await deleteGoal(goalId);
+  const handleDeleteGoal = useCallback((goalId: string) => {
+    setGoalToDelete(goalId);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (goalToDelete) {
+      await deleteGoal(goalToDelete);
       await loadGoals();
+      setGoalToDelete(null);
     }
-  }, [deleteGoal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [goalToDelete, deleteGoal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggleGoal = useCallback((goalId: string) => {
     setOpenGoals(prev => {
@@ -147,7 +161,7 @@ export default function GoalsPage() {
           </p>
         </div>
         <Button 
-          className="bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 w-full sm:w-auto text-sm"
+          className="bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 w-full sm:w-auto text-sm hidden sm:flex"
           onClick={() => handleOpenDialog()}
         >
           <Plus className="mr-1 sm:mr-2 h-4 w-4" />
@@ -212,6 +226,7 @@ export default function GoalsPage() {
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendario</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
 
         {/* List View */}
@@ -226,22 +241,32 @@ export default function GoalsPage() {
               <div className="space-y-3">
                 {isLoading ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-24 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                    <GoalCardSkeleton key={i} />
                   ))
                 ) : filteredGoals.length === 0 ? (
-                  <Card className="col-span-full">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Target className="h-12 w-12 text-slate-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                        No hay metas todavía
+                  <Card className="col-span-full border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+                      <div className="relative mb-6">
+                        <div className="absolute inset-0 bg-linear-to-br from-purple-100 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-full blur-2xl" />
+                        <Target className="relative h-20 w-20 text-purple-500 dark:text-purple-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                        {filterTab === 'active' ? 'No hay metas activas' : 'No hay metas completadas'}
                       </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                        Comienza definiendo tu primera meta
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
+                        {filterTab === 'active' 
+                          ? 'Comienza tu viaje hacia el éxito definiendo tu primera meta. Cada gran logro comienza con un primer paso.'
+                          : '¡Excelente trabajo! Las metas completadas aparecerán aquí. Sigue así.'}
                       </p>
-                      <Button onClick={() => handleOpenDialog()}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nueva Meta
-                      </Button>
+                      {filterTab === 'active' && (
+                        <Button 
+                          onClick={() => handleOpenDialog()}
+                          className="bg-linear-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Crear mi Primera Meta
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ) : (
@@ -270,9 +295,39 @@ export default function GoalsPage() {
             onGoalClick={(goal) => handleOpenDialog(goal)}
           />
         </TabsContent>
+
+        {/* Timeline View */}
+        <TabsContent value="timeline" className="mt-6">
+          <div className="space-y-6">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <GoalCardSkeleton key={i} />
+              ))
+            ) : filteredGoals.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+                  <div className="relative mb-6 inline-block">
+                    <div className="absolute inset-0 bg-linear-to-br from-purple-100 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-full blur-2xl" />
+                    <Clock className="relative h-20 w-20 text-purple-500 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    No hay historial disponible
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
+                    El timeline mostrará el progreso histórico de tus metas cuando comiences a completar hitos.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredGoals.map((goal) => (
+                <GoalTimeline key={goal.id} goal={goal} />
+              ))
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
 
-      {/* Dialog */}
+      {/* Dialogs */}
       <GoalDialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -282,6 +337,25 @@ export default function GoalsPage() {
         goal={editingGoal}
         onSave={handleSaveGoal}
       />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="¿Eliminar meta?"
+        description="Esta acción no se puede deshacer. Se eliminará la meta y todos sus hitos asociados."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+      />
+
+      {/* Floating Action Button para móvil */}
+      {isMobile && (
+        <FloatingActionButton
+          onClick={() => handleOpenDialog()}
+          label="Nueva Meta"
+        />
+      )}
     </div>
   );
 }
