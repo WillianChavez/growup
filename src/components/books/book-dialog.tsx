@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, Search, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Book, BookFormData, BookStatus } from '@/types/book.types';
+import { BookSearchService } from '@/services/book-search.service';
 
 interface BookDialogProps {
   open: boolean;
@@ -39,6 +41,9 @@ const STATUSES: { value: BookStatus; label: string }[] = [
 
 export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [imageError, setImageError] = useState(false);
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
     author: '',
@@ -63,14 +68,46 @@ export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps
         currentPage: book?.currentPage || 0,
         status: book?.status || 'to-read',
         coverUrl: book?.coverUrl || undefined,
+        isbn: book?.isbn || undefined,
         rating: book?.rating || undefined,
         notes: book?.notes || undefined,
         genre: book?.genre || undefined,
         startDate: book?.startDate || undefined,
         endDate: book?.endDate || undefined,
       });
+      setSearchQuery('');
+      setImageError(false);
     }
   }, [open, book]);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    try {
+      const result = await BookSearchService.searchBook(searchQuery);
+      if (result) {
+        setFormData({
+          ...formData,
+          title: result.title,
+          author: result.author,
+          pages: result.pages || formData.pages,
+          coverUrl: result.coverUrl,
+          isbn: result.isbn,
+          genre: result.subjects?.[0] || formData.genre,
+        });
+        setSearchQuery('');
+        setImageError(false);
+      } else {
+        alert('No se encontró el libro. Puedes agregarlo manualmente.');
+      }
+    } catch (error) {
+      console.error('Error searching book:', error);
+      alert('Error al buscar el libro. Intenta nuevamente.');
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +133,43 @@ export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Book Search */}
+          {!book && (
+            <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+              <Label htmlFor="search">Buscar Libro (Título o ISBN)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearch();
+                    }
+                  }}
+                  placeholder="Ej: El Principito o 978-84-376-0494-7"
+                  disabled={searching}
+                />
+                <Button
+                  type="button"
+                  onClick={handleSearch}
+                  disabled={searching || !searchQuery.trim()}
+                  variant="outline"
+                >
+                  {searching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Busca el libro por título o ISBN para auto-completar la información
+              </p>
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Título *</Label>
@@ -184,13 +258,34 @@ export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps
           {/* Cover URL */}
           <div className="space-y-2">
             <Label htmlFor="coverUrl">URL de Portada</Label>
-            <Input
-              id="coverUrl"
-              type="url"
-              value={formData.coverUrl || ''}
-              onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value || undefined })}
-              placeholder="https://..."
-            />
+            <div className="flex gap-2">
+              <Input
+                id="coverUrl"
+                type="url"
+                value={formData.coverUrl || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, coverUrl: e.target.value || undefined })
+                }
+                placeholder="https://..."
+              />
+              {formData.coverUrl && !imageError && (
+                <div className="relative h-20 w-14 shrink-0">
+                  <Image
+                    src={formData.coverUrl}
+                    alt="Portada"
+                    fill
+                    className="object-cover rounded border"
+                    unoptimized
+                    onError={() => setImageError(true)}
+                  />
+                </div>
+              )}
+              {formData.coverUrl && imageError && (
+                <div className="h-20 w-14 shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded border">
+                  <BookOpen className="h-6 w-6 text-slate-400" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Rating */}

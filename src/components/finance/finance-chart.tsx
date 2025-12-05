@@ -1,17 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
 import {
   Select,
   SelectContent,
@@ -19,9 +9,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+  Filler,
+  type TooltipItem,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { MonthlyTransactionGroup } from '@/types/finance.types';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 interface FinanceChartProps {
   data: MonthlyTransactionGroup[];
@@ -32,25 +36,74 @@ type MonthsFilter = '3' | '6' | '12' | 'all';
 export function FinanceChart({ data }: FinanceChartProps) {
   const [monthsFilter, setMonthsFilter] = useState<MonthsFilter>('6');
 
-  const getFilteredData = () => {
+  const filteredData = useMemo(() => {
     if (monthsFilter === 'all') return data;
     const months = parseInt(monthsFilter);
     return data.slice(-months);
+  }, [data, monthsFilter]);
+
+  const chartData = useMemo(() => {
+    const sortedData = [...filteredData].reverse();
+
+    return {
+      labels: sortedData.map((group) => {
+        const [year, month] = group.month.split('-');
+        // Usar el día 1 del mes explícitamente para evitar problemas de fecha
+        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+        return format(date, 'MMM yy', { locale: es });
+      }),
+      datasets: [
+        {
+          label: 'Ingresos',
+          data: sortedData.map((group) => group.totalIncome),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.4,
+        },
+        {
+          label: 'Gastos',
+          data: sortedData.map((group) => group.totalExpenses),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          fill: true,
+          tension: 0.4,
+        },
+        {
+          label: 'Balance',
+          data: sortedData.map((group) => group.balance),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          fill: true,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [filteredData]);
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: TooltipItem<'line'>) => {
+            if (context.parsed.y === null) return '';
+            const label = context.dataset.label || '';
+            return `${label}: $${context.parsed.y.toFixed(2)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+      },
+    },
   };
-
-  const filteredData = getFilteredData();
-
-  const chartData = filteredData
-    .map((group) => {
-      const [year, month] = group.month.split('-');
-      return {
-        mes: format(new Date(parseInt(year), parseInt(month) - 1), 'MMM yy', { locale: es }),
-        ingresos: group.totalIncome,
-        gastos: group.totalExpenses,
-        balance: group.balance,
-      };
-    })
-    .reverse(); // Mostrar del más antiguo al más reciente
 
   const getFilterLabel = () => {
     switch (monthsFilter) {
@@ -85,51 +138,9 @@ export function FinanceChart({ data }: FinanceChartProps) {
         </Select>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="mes" />
-            <YAxis />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-                      <p className="font-semibold mb-2">{data.mes}</p>
-                      <p className="text-sm text-green-600">
-                        Ingresos: ${data.ingresos.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-red-600">Gastos: ${data.gastos.toFixed(2)}</p>
-                      <p
-                        className={`text-sm font-medium ${data.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                      >
-                        Balance: ${data.balance.toFixed(2)}
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="ingresos"
-              stroke="#10b981"
-              strokeWidth={2}
-              name="Ingresos"
-            />
-            <Line type="monotone" dataKey="gastos" stroke="#ef4444" strokeWidth={2} name="Gastos" />
-            <Line
-              type="monotone"
-              dataKey="balance"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              name="Balance"
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="h-[300px]">
+          <Line data={chartData} options={options} />
+        </div>
       </CardContent>
     </Card>
   );

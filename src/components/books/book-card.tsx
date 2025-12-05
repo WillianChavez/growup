@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MoreVertical, Pencil, Trash2, Star } from 'lucide-react';
+import Image from 'next/image';
+import { MoreVertical, Pencil, Trash2, Star, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
+  const [imageError, setImageError] = useState(false);
   const progress = (book.currentPage / book.pages) * 100;
 
   return (
@@ -47,7 +50,23 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
     >
       <Card className="group hover:shadow-lg transition-all overflow-hidden">
         <CardHeader className="pb-3 p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-3">
+            {book.coverUrl && !imageError ? (
+              <div className="relative h-24 w-16 sm:h-32 sm:w-20 shrink-0">
+                <Image
+                  src={book.coverUrl}
+                  alt={`Portada de ${book.title}`}
+                  fill
+                  className="object-cover rounded border"
+                  unoptimized
+                  onError={() => setImageError(true)}
+                />
+              </div>
+            ) : (
+              <div className="h-24 w-16 sm:h-32 sm:w-20 shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded border">
+                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base sm:text-lg truncate">{book.title}</CardTitle>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 truncate">

@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@libsql/client', '@prisma/adapter-libsql', 'libsql'],
   // Configuración de Turbopack vacía para silenciar el warning
   turbopack: {},
+  // Configuración de imágenes para permitir Open Library
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'covers.openlibrary.org',
+      },
+    ],
+  },
   // Usar webpack en lugar de Turbopack para evitar problemas con libsql
   webpack: (config, { isServer }) => {
     if (isServer) {

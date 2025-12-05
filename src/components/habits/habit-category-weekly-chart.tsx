@@ -2,15 +2,17 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Tooltip,
-  ResponsiveContainer,
   Legend,
-} from 'recharts';
+  type TooltipItem,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 interface HabitCategoryWeeklyChartProps {
   data: Array<{
@@ -35,55 +37,56 @@ export function HabitCategoryWeeklyChart({ data, weeks }: HabitCategoryWeeklyCha
     );
   }
 
+  const weekKeys = Array.from({ length: weeks }, (_, i) => `semana${i + 1}`);
+  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'];
+
+  const chartData = {
+    labels: data.map((item) => item.category),
+    datasets: weekKeys.map((weekKey, index) => ({
+      label: `Semana ${index + 1}`,
+      data: data.map((item) => (item[weekKey] as number) || 0),
+      backgroundColor: colors[index % colors.length],
+    })),
+  };
+
+  const options = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: TooltipItem<'bar'>) => {
+            if (context.parsed.x === null) return '';
+            const label = context.dataset.label || '';
+            return `${label}: ${context.parsed.x} completados`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+        beginAtZero: true,
+      },
+      y: {
+        stacked: true,
+      },
+    },
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Hábitos Completados por Categoría (Últimas {weeks} Semanas)</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis dataKey="category" type="category" width={120} />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-                      <p className="font-semibold mb-2">{data.category}</p>
-                      {Array.from({ length: weeks }).map((_, i) => {
-                        const weekKey = `semana${i + 1}`;
-                        const value = data[weekKey];
-                        return (
-                          <p key={weekKey} className="text-sm">
-                            Semana {i + 1}: {value} completados
-                          </p>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Legend />
-            {Array.from({ length: weeks }).map((_, i) => {
-              const weekKey = `semana${i + 1}`;
-              const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'];
-              return (
-                <Bar
-                  key={weekKey}
-                  dataKey={weekKey}
-                  fill={colors[i % colors.length]}
-                  name={`Semana ${i + 1}`}
-                  stackId="a"
-                />
-              );
-            })}
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="h-[300px]">
+          <Bar data={chartData} options={options} />
+        </div>
       </CardContent>
     </Card>
   );

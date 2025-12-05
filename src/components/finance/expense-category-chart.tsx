@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   Select,
   SelectContent,
@@ -10,23 +9,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Transaction } from '@/types/finance.types';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
 import { startOfMonth, startOfYear, isAfter, isBefore, endOfMonth, endOfYear } from 'date-fns';
 
+ChartJS.register(ArcElement, Tooltip, Legend);
+
 interface ExpenseCategoryChartProps {
-  transactions: Transaction[];
+  transactions: Array<{
+    id: string;
+    type: string;
+    amount: number;
+    date: Date;
+    category: {
+      name: string;
+      color: string;
+      emoji: string;
+    } | null;
+  }>;
 }
 
 type TimeFilter = 'month' | 'quarter' | 'year' | 'all';
+
+// Paleta de colores predefinida para categorías sin color
+const CATEGORY_COLORS = [
+  '#3b82f6', // blue
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#f97316', // orange
+  '#6366f1', // indigo
+  '#14b8a6', // teal
+  '#a855f7', // violet
+];
+
+/**
+ * Obtiene un color determinístico para una categoría basándose en su nombre
+ * Siempre devuelve el mismo color para el mismo nombre
+ */
+function getCategoryColor(categoryName: string): string {
+  // Hash simple del nombre para obtener un índice consistente
+  let hash = 0;
+  for (let i = 0; i < categoryName.length; i++) {
+    const char = categoryName.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+
+  // Usar el valor absoluto del hash para obtener un índice de la paleta
+  const index = Math.abs(hash) % CATEGORY_COLORS.length;
+  return CATEGORY_COLORS[index];
+}
 
 export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('month');
 
   // Filtrar transacciones según el período seleccionado
   const filterTransactionsByTime = (
-    transactions: Transaction[],
+    transactions: ExpenseCategoryChartProps['transactions'],
     filter: TimeFilter
-  ): Transaction[] => {
+  ): ExpenseCategoryChartProps['transactions'] => {
     const now = new Date();
 
     switch (filter) {
@@ -80,7 +126,11 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
     .reduce(
       (acc, transaction) => {
         const categoryName = transaction.category?.name || 'Sin categoría';
-        const categoryColor = transaction.category?.color || '#94a3b8';
+        const defaultColor = '#94a3b8';
+        const categoryColor =
+          transaction.category?.color && transaction.category.color !== defaultColor
+            ? transaction.category.color
+            : getCategoryColor(categoryName);
         const categoryEmoji = transaction.category?.emoji || '💰';
 
         if (!acc[categoryName]) {
@@ -97,14 +147,45 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
       {} as Record<string, { name: string; value: number; color: string; emoji: string }>
     );
 
-  const chartData = Object.values(categoryTotals)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
-    .map((item) => ({
-      name: `${item.emoji} ${item.name}`,
-      value: parseFloat(item.value.toFixed(2)),
-      color: item.color,
-    }));
+  console.log(categoryTotals);
+  const chartData = {
+    labels: Object.values(categoryTotals)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+      .map((item) => `${item.emoji} ${item.name}`),
+    datasets: [
+      {
+        data: Object.values(categoryTotals)
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 8)
+          .map((item) => parseFloat(item.value.toFixed(2))),
+        backgroundColor: Object.values(categoryTotals)
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 8)
+          .map((item) => item.color),
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: { label: string; parsed: number | null }) => {
+            if (context.parsed === null) return '';
+            const total = chartData.datasets[0].data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.parsed / total) * 100).toFixed(0);
+            return `${context.label}: $${context.parsed.toFixed(2)} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
 
   const getFilterLabel = () => {
     switch (timeFilter) {
@@ -119,7 +200,7 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
     }
   };
 
-  if (chartData.length === 0) {
+  if (chartData.datasets[0].data.length === 0) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -160,38 +241,9 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
         </Select>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0];
-                  return (
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-                      <p className="font-semibold">{data.name}</p>
-                      <p className="text-sm text-red-600">Total: ${data.value}</p>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+        <div className="h-[300px]">
+          <Pie data={chartData} options={options} />
+        </div>
       </CardContent>
     </Card>
   );

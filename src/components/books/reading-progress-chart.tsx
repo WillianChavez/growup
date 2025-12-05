@@ -2,19 +2,25 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Tooltip,
-  ResponsiveContainer,
   Legend,
-} from 'recharts';
-import type { Book } from '@/types/book.types';
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 interface ReadingProgressChartProps {
-  books: Book[];
+  books: Array<{
+    id: string;
+    title: string;
+    pages: number;
+    currentPage: number;
+    status: string;
+  }>;
 }
 
 export function ReadingProgressChart({ books }: ReadingProgressChartProps) {
@@ -42,40 +48,59 @@ export function ReadingProgressChart({ books }: ReadingProgressChartProps) {
     );
   }
 
+  const chartData = {
+    labels: readingBooks.map((book) => book.title),
+    datasets: [
+      {
+        label: 'Páginas Leídas',
+        data: readingBooks.map((book) => book.leídas),
+        backgroundColor: '#3b82f6',
+      },
+      {
+        label: 'Páginas Pendientes',
+        data: readingBooks.map((book) => book.pendientes),
+        backgroundColor: '#cbd5e1',
+      },
+    ],
+  };
+
+  const options = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        callbacks: {
+          afterLabel: (context: { dataIndex: number }) => {
+            const book = readingBooks[context.dataIndex];
+            return `Progreso: ${book.porcentaje}%`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+        beginAtZero: true,
+      },
+      y: {
+        stacked: true,
+      },
+    },
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Progreso de Lectura</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={readingBooks} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis dataKey="title" type="category" width={100} />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-                      <p className="font-semibold mb-2">{data.title}</p>
-                      <p className="text-sm text-blue-600">Leídas: {data.leídas} páginas</p>
-                      <p className="text-sm text-slate-500">
-                        Pendientes: {data.pendientes} páginas
-                      </p>
-                      <p className="text-sm font-medium">Progreso: {data.porcentaje}%</p>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Legend />
-            <Bar dataKey="leídas" stackId="a" fill="#3b82f6" name="Páginas Leídas" />
-            <Bar dataKey="pendientes" stackId="a" fill="#cbd5e1" name="Páginas Pendientes" />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="h-[300px]">
+          <Bar data={chartData} options={options} />
+        </div>
       </CardContent>
     </Card>
   );

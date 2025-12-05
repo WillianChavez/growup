@@ -13,17 +13,7 @@ import { FinanceChart } from '@/components/finance/finance-chart';
 import { ExpenseCategoryChart } from '@/components/finance/expense-category-chart';
 import { GoalProgressChart } from '@/components/goals/goal-progress-chart';
 import { ReadingProgressChart } from '@/components/books/reading-progress-chart';
-import { useHabits } from '@/hooks/useHabits';
-import { useDailyHabits } from '@/hooks/useDailyHabits';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useMonthlyTransactions } from '@/hooks/useMonthlyTransactions';
-import { useGoals } from '@/hooks/useGoals';
-import { useBooks } from '@/hooks/useBooks';
-import type { Habit } from '@/types/habit.types';
-import type { Transaction, MonthlyTransactionGroup } from '@/types/finance.types';
-import type { Goal } from '@/types/goal.types';
-import type { Book } from '@/types/book.types';
-import type { DailyHabitView } from '@/types/habit.types';
+import type { DashboardData } from '@/services/dashboard.service';
 
 const container = {
   hidden: { opacity: 0 },
@@ -42,69 +32,21 @@ const item = {
 
 export default function DashboardPage() {
   const today = new Date();
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [monthlyGroups, setMonthlyGroups] = useState<MonthlyTransactionGroup[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [books, setBooks] = useState<Book[]>([]);
-  const [dailyView, setDailyView] = useState<DailyHabitView | null>(null);
-  const [weeklyStats, setWeeklyStats] = useState<
-    Array<{ date: string; completed: number; total: number }>
-  >([]);
-  const [categoriesWeekly, setCategoriesWeekly] = useState<
-    Array<{ category: string; color: string; [key: string]: string | number }>
-  >([]);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const { fetchHabits } = useHabits();
-  const { fetchTransactions } = useTransactions();
-  const { fetchMonthlyGroups } = useMonthlyTransactions();
-  const { fetchGoals } = useGoals();
-  const { fetchBooks } = useBooks();
-  const { fetchDailyView } = useDailyHabits();
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
-
-      // Cargar datos básicos
-      const [habitsData, transactionsData, goalsData, booksData, dailyData] = await Promise.all([
-        fetchHabits(false),
-        fetchTransactions(),
-        fetchGoals(),
-        fetchBooks(),
-        fetchDailyView(today),
-      ]);
-
-      setHabits(habitsData);
-      setTransactions(transactionsData);
-      setGoals(goalsData);
-      setBooks(booksData);
-      setDailyView(dailyData);
-
-      // Cargar estadísticas semanales de hábitos
-      const weeklyStatsResponse = await fetch('/api/habits/stats/weekly?days=7');
-      if (weeklyStatsResponse.ok) {
-        const result = await weeklyStatsResponse.json();
-        setWeeklyStats(result.data || []);
+      const response = await fetch('/api/dashboard');
+      if (response.ok) {
+        const result = await response.json();
+        setDashboardData(result.data);
       }
-
-      // Cargar categorías por semana
-      const categoriesWeeklyResponse = await fetch('/api/habits/stats/categories-weekly?weeks=4');
-      if (categoriesWeeklyResponse.ok) {
-        const result = await categoriesWeeklyResponse.json();
-        setCategoriesWeekly(result.data || []);
-      }
-
-      // Cargar últimos 12 meses de finanzas
-      const currentYear = today.getFullYear();
-      const groups = await fetchMonthlyGroups(currentYear);
-      setMonthlyGroups(groups);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -112,92 +54,49 @@ export default function DashboardPage() {
     }
   };
 
-  // Calcular estadísticas
-  const totalActiveHabits = habits.filter((h) => h.isActive).length;
-  const completedToday = dailyView?.habits.filter((h) => h.entry?.completed).length || 0;
-
-  // Calcular estadísticas financieras del mes actual
-  const monthlyIncome = transactions
-    .filter((t) => {
-      const transactionDate = new Date(t.date);
-      return (
-        t.type === 'income' &&
-        transactionDate.getMonth() === today.getMonth() &&
-        transactionDate.getFullYear() === today.getFullYear()
-      );
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const monthlyExpenses = transactions
-    .filter((t) => {
-      const transactionDate = new Date(t.date);
-      return (
-        t.type === 'expense' &&
-        transactionDate.getMonth() === today.getMonth() &&
-        transactionDate.getFullYear() === today.getFullYear()
-      );
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const monthlySavings = monthlyIncome - monthlyExpenses;
-  const savingsRate = monthlyIncome > 0 ? (monthlySavings / monthlyIncome) * 100 : 0;
-
-  // Balance total (todos los tiempos)
-  const totalBalance =
-    transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
-    transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-
-  const stats = {
-    habitsToday: {
-      completed: completedToday,
-      total: totalActiveHabits,
-    },
-    reading: {
-      booksReading: books.filter((b) => b.status === 'reading').length,
-      pagesThisWeek: books
-        .filter((b) => b.status === 'reading')
-        .reduce((sum, book) => sum + book.currentPage, 0),
-    },
-    finance: {
-      balance: totalBalance,
-      monthlyIncome,
-      monthlyExpenses,
-      monthlySavings,
-      savingsRate,
-    },
-    goals: {
-      active: goals.filter((g) => g.status !== 'completed').length,
-      completedThisMonth: goals.filter((g) => {
-        if (g.status !== 'completed' || !g.completedAt) return false;
-        const completedDate = new Date(g.completedAt);
-        return (
-          completedDate.getMonth() === today.getMonth() &&
-          completedDate.getFullYear() === today.getFullYear()
-        );
-      }).length,
-    },
-  };
-
   const motivationalQuote = {
     quote: 'El éxito es la suma de pequeños esfuerzos repetidos día tras día.',
     author: 'Robert Collier',
   };
 
-  // Datos para gráfico de hábitos (últimos 7 días) - datos reales de la API
-  const habitStatsData = weeklyStats.map((stat) => ({
-    date: new Date(stat.date),
+  if (isLoading || !dashboardData) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-1/3 mb-2" />
+          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4" />
+        </div>
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    stats,
+    habitWeeklyStats,
+    habitCategoryWeekly,
+    monthlyTransactions,
+    transactions,
+    goals,
+    books,
+  } = dashboardData;
+
+  // Datos para gráfico de hábitos (últimos 7 días)
+  const habitStatsData = habitWeeklyStats.map((stat) => ({
+    date: stat.date,
     completed: stat.completed,
     total: stat.total,
   }));
 
   // Datos para gráfico de progreso de metas
-  const goalProgressData = goals
-    .filter((g) => g.status !== 'completed')
-    .slice(0, 5)
-    .map((goal) => ({
-      title: goal.title,
-      progress: goal.progress || 0,
-    }));
+  const goalProgressData = goals.map((goal) => ({
+    title: goal.title,
+    progress: goal.progress,
+  }));
 
   if (isLoading) {
     return (
@@ -402,17 +301,17 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <FinanceChart data={monthlyGroups} />
+          <FinanceChart data={monthlyTransactions} />
         </motion.div>
 
         {/* Hábitos - Categorías Completadas por Semana */}
-        {categoriesWeekly.length > 0 && (
+        {habitCategoryWeekly.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <HabitCategoryWeeklyChart data={categoriesWeekly} weeks={4} />
+            <HabitCategoryWeeklyChart data={habitCategoryWeekly} weeks={4} />
           </motion.div>
         )}
 
