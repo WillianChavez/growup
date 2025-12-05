@@ -29,10 +29,7 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="flex flex-grow flex-col gap-y-5 overflow-y-auto border-r border-slate-200 bg-white px-6 pb-4 dark:border-slate-800 dark:bg-slate-950">
-        <Link
-          href="/dashboard"
-          className="flex h-16 shrink-0 items-center gap-2"
-        >
+        <Link href="/dashboard" className="flex h-16 shrink-0 items-center gap-2">
           <motion.div
             whileHover={{ rotate: 180, scale: 1.1 }}
             transition={{ type: 'spring', stiffness: 200 }}
@@ -89,4 +86,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

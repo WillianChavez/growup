@@ -3,10 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import { BudgetService } from '@/services/budget.service';
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
@@ -27,10 +24,7 @@ export async function PATCH(
     return NextResponse.json({ success: true, data: expense });
   } catch (error) {
     console.error('Error updating recurring expense:', error);
-    return NextResponse.json(
-      { error: 'Error al actualizar gasto recurrente' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al actualizar gasto recurrente' }, { status: 500 });
   }
 }
 
@@ -57,10 +51,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting recurring expense:', error);
-    return NextResponse.json(
-      { error: 'Error al eliminar gasto recurrente' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al eliminar gasto recurrente' }, { status: 500 });
   }
 }
-

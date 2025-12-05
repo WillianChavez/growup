@@ -29,7 +29,7 @@ export function useDailyHabits() {
       // Normalizar la fecha a UTC para consistencia
       const normalizedDate = new Date(date);
       normalizedDate.setUTCHours(0, 0, 0, 0);
-      
+
       const response = await fetch(`/api/habits/${habitId}/entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,4 +53,3 @@ export function useDailyHabits() {
     isLoading,
   };
 }
-

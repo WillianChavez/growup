@@ -2,7 +2,10 @@ import { prisma } from '@/lib/db';
 import type { HabitCategory } from '@/types/habit.types';
 
 export class HabitCategoryService {
-  static async create(userId: string, data: Omit<HabitCategory, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<HabitCategory> {
+  static async create(
+    userId: string,
+    data: Omit<HabitCategory, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  ): Promise<HabitCategory> {
     return prisma.habitCategory.create({
       data: {
         ...data,
@@ -56,7 +59,7 @@ export class HabitCategoryService {
         where: { id, userId },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -78,4 +81,3 @@ export class HabitCategoryService {
     });
   }
 }
-

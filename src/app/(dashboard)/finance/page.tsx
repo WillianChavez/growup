@@ -11,7 +11,11 @@ import { MonthlyGroupView } from '@/components/finance/monthly-group-view';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import type { Transaction, TransactionFormData, MonthlyTransactionGroup } from '@/types/finance.types';
+import type {
+  Transaction,
+  TransactionFormData,
+  MonthlyTransactionGroup,
+} from '@/types/finance.types';
 
 export default function FinancePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -22,8 +26,9 @@ export default function FinancePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  
-  const { fetchTransactions, createTransaction, updateTransaction, deleteTransaction, isLoading } = useTransactions();
+
+  const { fetchTransactions, createTransaction, updateTransaction, deleteTransaction, isLoading } =
+    useTransactions();
   const { fetchMonthlyGroups } = useMonthlyTransactions();
 
   const loadTransactions = async () => {
@@ -78,11 +83,11 @@ export default function FinancePage() {
 
   // Calcular totales
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpense;
@@ -92,57 +97,57 @@ export default function FinancePage() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+          <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Finanzas Personales
-          </h1>
+              Finanzas Personales
+            </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-            Gestiona tus ingresos y gastos
-          </p>
-        </div>
+              Gestiona tus ingresos y gastos
+            </p>
+          </div>
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <Button
               variant="outline"
               className="flex-1 sm:flex-none text-sm"
-              onClick={() => window.location.href = '/finance/dashboard'}
+              onClick={() => (window.location.href = '/finance/dashboard')}
             >
               📈 Dashboard
             </Button>
             <Button
               variant="outline"
               className="flex-1 sm:flex-none text-sm"
-              onClick={() => window.location.href = '/finance/budget'}
+              onClick={() => (window.location.href = '/finance/budget')}
             >
               📊 Presupuesto
             </Button>
             <Button
               variant="outline"
               className="flex-1 sm:flex-none text-sm"
-              onClick={() => window.location.href = '/finance/assets'}
+              onClick={() => (window.location.href = '/finance/assets')}
             >
               💰 Activos
             </Button>
             <Button
               variant="outline"
               className="flex-1 sm:flex-none text-sm"
-              onClick={() => window.location.href = '/finance/debts'}
+              onClick={() => (window.location.href = '/finance/debts')}
             >
               💳 Deudas
             </Button>
-          <Button
+            <Button
               className="bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 flex-1 sm:flex-none text-sm hidden sm:flex"
-            onClick={() => handleOpenDialog('income')}
-          >
+              onClick={() => handleOpenDialog('income')}
+            >
               <PlusCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="hidden xs:inline">Agregar </span>Ingreso
-          </Button>
-          <Button
+            </Button>
+            <Button
               className="bg-linear-to-r from-red-500 to-orange-600 text-white hover:from-red-600 hover:to-orange-700 flex-1 sm:flex-none text-sm hidden sm:flex"
-            onClick={() => handleOpenDialog('expense')}
-          >
+              onClick={() => handleOpenDialog('expense')}
+            >
               <MinusCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="hidden xs:inline">Agregar </span>Gasto
-          </Button>
+            </Button>
           </div>
         </div>
       </div>
@@ -182,9 +187,11 @@ export default function FinancePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-4">
-            <div className={`text-lg sm:text-2xl font-bold ${
-              balance >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <div
+              className={`text-lg sm:text-2xl font-bold ${
+                balance >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
               {balance >= 0 ? '+' : ''}${balance.toFixed(2)}
             </div>
           </CardContent>
@@ -213,17 +220,18 @@ export default function FinancePage() {
                 No hay transacciones registradas
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
-                Comienza a registrar tus ingresos y gastos para tener un mejor control de tus finanzas.
+                Comienza a registrar tus ingresos y gastos para tener un mejor control de tus
+                finanzas.
               </p>
               <div className="flex gap-2">
-                <Button 
+                <Button
                   onClick={() => handleOpenDialog('income')}
                   className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Agregar Ingreso
                 </Button>
-                <Button 
+                <Button
                   onClick={() => handleOpenDialog('expense')}
                   className="bg-linear-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700"
                 >

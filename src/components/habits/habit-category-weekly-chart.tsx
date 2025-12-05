@@ -1,7 +1,16 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 
 interface HabitCategoryWeeklyChartProps {
   data: Array<{
@@ -37,7 +46,7 @@ export function HabitCategoryWeeklyChart({ data, weeks }: HabitCategoryWeeklyCha
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" />
             <YAxis dataKey="category" type="category" width={120} />
-            <Tooltip 
+            <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
@@ -64,7 +73,7 @@ export function HabitCategoryWeeklyChart({ data, weeks }: HabitCategoryWeeklyCha
               const weekKey = `semana${i + 1}`;
               const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'];
               return (
-                <Bar 
+                <Bar
                   key={weekKey}
                   dataKey={weekKey}
                   fill={colors[i % colors.length]}
@@ -79,4 +88,3 @@ export function HabitCategoryWeeklyChart({ data, weeks }: HabitCategoryWeeklyCha
     </Card>
   );
 }
-

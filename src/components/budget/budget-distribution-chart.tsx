@@ -16,11 +16,11 @@ const COLORS = {
 
 export function BudgetDistributionChart({ summary }: BudgetDistributionChartProps) {
   const essentialExpenses = summary.expensesByCategory
-    .filter(cat => cat.isEssential)
+    .filter((cat) => cat.isEssential)
     .reduce((sum, cat) => sum + cat.amount, 0);
 
   const nonEssentialExpenses = summary.expensesByCategory
-    .filter(cat => !cat.isEssential)
+    .filter((cat) => !cat.isEssential)
     .reduce((sum, cat) => sum + cat.amount, 0);
 
   const savings = summary.availableBalance > 0 ? summary.availableBalance : 0;
@@ -29,28 +29,31 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
     {
       name: 'Gastos Esenciales',
       value: essentialExpenses,
-      percentage: summary.totalMonthlyIncome > 0 
-        ? ((essentialExpenses / summary.totalMonthlyIncome) * 100).toFixed(1)
-        : '0',
+      percentage:
+        summary.totalMonthlyIncome > 0
+          ? ((essentialExpenses / summary.totalMonthlyIncome) * 100).toFixed(1)
+          : '0',
       color: COLORS.essential,
     },
     {
       name: 'Gastos No Esenciales',
       value: nonEssentialExpenses,
-      percentage: summary.totalMonthlyIncome > 0 
-        ? ((nonEssentialExpenses / summary.totalMonthlyIncome) * 100).toFixed(1)
-        : '0',
+      percentage:
+        summary.totalMonthlyIncome > 0
+          ? ((nonEssentialExpenses / summary.totalMonthlyIncome) * 100).toFixed(1)
+          : '0',
       color: COLORS.nonEssential,
     },
     {
       name: 'Ahorro Disponible',
       value: savings,
-      percentage: summary.totalMonthlyIncome > 0 
-        ? ((savings / summary.totalMonthlyIncome) * 100).toFixed(1)
-        : '0',
+      percentage:
+        summary.totalMonthlyIncome > 0
+          ? ((savings / summary.totalMonthlyIncome) * 100).toFixed(1)
+          : '0',
       color: COLORS.savings,
     },
-  ].filter(item => item.value > 0);
+  ].filter((item) => item.value > 0);
 
   if (chartData.length === 0) {
     return (
@@ -90,7 +93,7 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip 
+            <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
@@ -105,8 +108,8 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
                 return null;
               }}
             />
-            <Legend 
-              verticalAlign="bottom" 
+            <Legend
+              verticalAlign="bottom"
               height={36}
               formatter={(value, entry) => {
                 const data = entry.payload ?? { value: 0 };
@@ -115,7 +118,7 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
             />
           </PieChart>
         </ResponsiveContainer>
-        
+
         {/* Summary Stats */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
           <div className="text-center">
@@ -132,7 +135,9 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
           </div>
           <div className="text-center">
             <p className="text-xs text-slate-500">Tasa de Ahorro</p>
-            <p className={`text-lg font-bold ${summary.savingsRate > 20 ? 'text-green-600' : summary.savingsRate > 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+            <p
+              className={`text-lg font-bold ${summary.savingsRate > 20 ? 'text-green-600' : summary.savingsRate > 10 ? 'text-yellow-600' : 'text-red-600'}`}
+            >
               {summary.savingsRate.toFixed(1)}%
             </p>
           </div>
@@ -141,4 +146,3 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
     </Card>
   );
 }
-

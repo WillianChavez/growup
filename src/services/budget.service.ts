@@ -1,15 +1,15 @@
 import { prisma } from '@/lib/db';
-import type { 
-  IncomeSource, 
-  RecurringExpense, 
-  IncomeSourceFormData, 
+import type {
+  IncomeSource,
+  RecurringExpense,
+  IncomeSourceFormData,
   RecurringExpenseFormData,
-  BudgetSummary 
+  BudgetSummary,
 } from '@/types/budget.types';
 
 export class BudgetService {
   // ==================== INCOME SOURCES ====================
-  
+
   static async getIncomeSources(userId: string): Promise<IncomeSource[]> {
     const sources = await prisma.incomeSource.findMany({
       where: { userId },
@@ -18,7 +18,10 @@ export class BudgetService {
     return sources as IncomeSource[];
   }
 
-  static async createIncomeSource(userId: string, data: IncomeSourceFormData): Promise<IncomeSource> {
+  static async createIncomeSource(
+    userId: string,
+    data: IncomeSourceFormData
+  ): Promise<IncomeSource> {
     const source = await prisma.incomeSource.create({
       data: {
         userId,
@@ -28,7 +31,11 @@ export class BudgetService {
     return source as IncomeSource;
   }
 
-  static async updateIncomeSource(id: string, userId: string, data: Partial<IncomeSourceFormData>): Promise<IncomeSource> {
+  static async updateIncomeSource(
+    id: string,
+    userId: string,
+    data: Partial<IncomeSourceFormData>
+  ): Promise<IncomeSource> {
     const source = await prisma.incomeSource.update({
       where: { id, userId },
       data,
@@ -43,7 +50,7 @@ export class BudgetService {
   }
 
   // ==================== RECURRING EXPENSES ====================
-  
+
   static async getRecurringExpenses(userId: string): Promise<RecurringExpense[]> {
     const expenses = await prisma.recurringExpense.findMany({
       where: { userId },
@@ -52,7 +59,10 @@ export class BudgetService {
     return expenses as RecurringExpense[];
   }
 
-  static async createRecurringExpense(userId: string, data: RecurringExpenseFormData): Promise<RecurringExpense> {
+  static async createRecurringExpense(
+    userId: string,
+    data: RecurringExpenseFormData
+  ): Promise<RecurringExpense> {
     const expense = await prisma.recurringExpense.create({
       data: {
         userId,
@@ -62,7 +72,11 @@ export class BudgetService {
     return expense as RecurringExpense;
   }
 
-  static async updateRecurringExpense(id: string, userId: string, data: Partial<RecurringExpenseFormData>): Promise<RecurringExpense> {
+  static async updateRecurringExpense(
+    id: string,
+    userId: string,
+    data: Partial<RecurringExpenseFormData>
+  ): Promise<RecurringExpense> {
     const expense = await prisma.recurringExpense.update({
       where: { id, userId },
       data,
@@ -77,7 +91,7 @@ export class BudgetService {
   }
 
   // ==================== BUDGET SUMMARY ====================
-  
+
   static async getBudgetSummary(userId: string): Promise<BudgetSummary> {
     const [incomeSources, recurringExpenses] = await Promise.all([
       this.getIncomeSources(userId),
@@ -86,69 +100,73 @@ export class BudgetService {
 
     // Calcular ingresos mensuales
     const totalMonthlyIncome = incomeSources
-      .filter(source => source.isActive)
+      .filter((source) => source.isActive)
       .reduce((sum, source) => sum + this.convertToMonthly(source.amount, source.frequency), 0);
 
     // Calcular gastos mensuales
     const totalMonthlyExpenses = recurringExpenses
-      .filter(expense => expense.isActive)
+      .filter((expense) => expense.isActive)
       .reduce((sum, expense) => sum + this.convertToMonthly(expense.amount, expense.frequency), 0);
 
     const availableBalance = totalMonthlyIncome - totalMonthlyExpenses;
-    const savingsRate = totalMonthlyIncome > 0 ? ((availableBalance / totalMonthlyIncome) * 100) : 0;
+    const savingsRate = totalMonthlyIncome > 0 ? (availableBalance / totalMonthlyIncome) * 100 : 0;
 
     // Agrupar gastos por categoría
     const expensesByCategory = recurringExpenses
-      .filter(expense => expense.isActive)
-      .reduce((acc, expense) => {
-        const monthlyAmount = this.convertToMonthly(expense.amount, expense.frequency);
-        const existing = acc.find(item => item.category === expense.category);
-        
-        if (existing) {
-          existing.amount += monthlyAmount;
-        } else {
-          acc.push({
-            category: expense.category,
-            categoryName: this.getCategoryLabel(expense.category),
-            amount: monthlyAmount,
-            percentage: 0,
-            isEssential: expense.isEssential,
-          });
-        }
-        return acc;
-      }, [] as BudgetSummary['expensesByCategory']);
+      .filter((expense) => expense.isActive)
+      .reduce(
+        (acc, expense) => {
+          const monthlyAmount = this.convertToMonthly(expense.amount, expense.frequency);
+          const existing = acc.find((item) => item.category === expense.category);
+
+          if (existing) {
+            existing.amount += monthlyAmount;
+          } else {
+            acc.push({
+              category: expense.category,
+              categoryName: this.getCategoryLabel(expense.category),
+              amount: monthlyAmount,
+              percentage: 0,
+              isEssential: expense.isEssential,
+            });
+          }
+          return acc;
+        },
+        [] as BudgetSummary['expensesByCategory']
+      );
 
     // Calcular porcentajes
-    expensesByCategory.forEach(category => {
-      category.percentage = totalMonthlyIncome > 0 
-        ? (category.amount / totalMonthlyIncome) * 100 
-        : 0;
+    expensesByCategory.forEach((category) => {
+      category.percentage =
+        totalMonthlyIncome > 0 ? (category.amount / totalMonthlyIncome) * 100 : 0;
     });
 
     // Agrupar ingresos por categoría
     const incomeByCategory = incomeSources
-      .filter(source => source.isActive)
-      .reduce((acc, source) => {
-        const monthlyAmount = this.convertToMonthly(source.amount, source.frequency);
-        const existing = acc.find(item => item.category === source.category);
-        
-        if (existing) {
-          existing.amount += monthlyAmount;
-        } else {
-          acc.push({
-            category: source.category,
-            amount: monthlyAmount,
-            percentage: 0,
-          });
-        }
-        return acc;
-      }, [] as BudgetSummary['incomeByCategory']);
+      .filter((source) => source.isActive)
+      .reduce(
+        (acc, source) => {
+          const monthlyAmount = this.convertToMonthly(source.amount, source.frequency);
+          const existing = acc.find((item) => item.category === source.category);
+
+          if (existing) {
+            existing.amount += monthlyAmount;
+          } else {
+            acc.push({
+              category: source.category,
+              amount: monthlyAmount,
+              percentage: 0,
+            });
+          }
+          return acc;
+        },
+        [] as BudgetSummary['incomeByCategory']
+      );
 
     // Calcular porcentajes de ingresos
-    incomeByCategory.forEach(category => {
-      category.percentage = totalMonthlyIncome > 0 
-        ? (category.amount / totalMonthlyIncome) * 100 
-        : 0;
+    incomeByCategory.forEach((category) => {
+      category.percentage =
+        totalMonthlyIncome > 0 ? (category.amount / totalMonthlyIncome) * 100 : 0;
     });
 
     return {
@@ -193,4 +211,3 @@ export class BudgetService {
     return labels[category] || category;
   }
 }
-

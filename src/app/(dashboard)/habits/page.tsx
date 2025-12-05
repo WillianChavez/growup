@@ -78,7 +78,7 @@ export default function HabitsPage() {
             Construye tu mejor versión, un hábito a la vez
           </p>
         </div>
-        <Button 
+        <Button
           className="bg-linear-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 w-full sm:w-auto text-sm hidden sm:flex"
           onClick={() => handleOpenDialog()}
         >
@@ -90,9 +90,15 @@ export default function HabitsPage() {
       {/* Main Content with Tabs */}
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
-          <TabsTrigger value="today" className="text-xs sm:text-sm">Hoy</TabsTrigger>
-          <TabsTrigger value="calendar" className="text-xs sm:text-sm">Calendario</TabsTrigger>
-          <TabsTrigger value="all" className="text-xs sm:text-sm">Todos</TabsTrigger>
+          <TabsTrigger value="today" className="text-xs sm:text-sm">
+            Hoy
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="text-xs sm:text-sm">
+            Calendario
+          </TabsTrigger>
+          <TabsTrigger value="all" className="text-xs sm:text-sm">
+            Todos
+          </TabsTrigger>
         </TabsList>
 
         {/* Today Tab - Daily Tracker */}
@@ -135,9 +141,10 @@ export default function HabitsPage() {
                     Comienza tu viaje de crecimiento
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
-                    Los hábitos son la base del éxito. Crea tu primer hábito y comienza a construir una mejor versión de ti mismo.
+                    Los hábitos son la base del éxito. Crea tu primer hábito y comienza a construir
+                    una mejor versión de ti mismo.
                   </p>
-                  <Button 
+                  <Button
                     onClick={() => handleOpenDialog()}
                     className="bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                   >
@@ -185,12 +192,7 @@ export default function HabitsPage() {
       />
 
       {/* Floating Action Button para móvil */}
-      {isMobile && (
-        <FloatingActionButton
-          onClick={() => handleOpenDialog()}
-          label="Nuevo Hábito"
-        />
-      )}
+      {isMobile && <FloatingActionButton onClick={() => handleOpenDialog()} label="Nuevo Hábito" />}
     </div>
   );
 }

@@ -11,7 +11,13 @@ import { BudgetDistributionChart } from '@/components/budget/budget-distribution
 import { IncomeSourceDialog } from '@/components/budget/income-source-dialog';
 import { RecurringExpenseDialog } from '@/components/budget/recurring-expense-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import type { BudgetSummary, IncomeSource, RecurringExpense, IncomeSourceFormData, RecurringExpenseFormData } from '@/types/budget.types';
+import type {
+  BudgetSummary,
+  IncomeSource,
+  RecurringExpense,
+  IncomeSourceFormData,
+  RecurringExpenseFormData,
+} from '@/types/budget.types';
 
 export default function BudgetPage() {
   const [summary, setSummary] = useState<BudgetSummary | null>(null);
@@ -59,9 +65,11 @@ export default function BudgetPage() {
   };
 
   const handleSaveIncome = async (data: IncomeSourceFormData) => {
-    const url = editingIncome ? `/api/budget/income-sources/${editingIncome.id}` : '/api/budget/income-sources';
+    const url = editingIncome
+      ? `/api/budget/income-sources/${editingIncome.id}`
+      : '/api/budget/income-sources';
     const method = editingIncome ? 'PATCH' : 'POST';
-    
+
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -80,9 +88,11 @@ export default function BudgetPage() {
   };
 
   const handleSaveExpense = async (data: RecurringExpenseFormData) => {
-    const url = editingExpense ? `/api/budget/recurring-expenses/${editingExpense.id}` : '/api/budget/recurring-expenses';
+    const url = editingExpense
+      ? `/api/budget/recurring-expenses/${editingExpense.id}`
+      : '/api/budget/recurring-expenses';
     const method = editingExpense ? 'PATCH' : 'POST';
-    
+
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -102,11 +112,12 @@ export default function BudgetPage() {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete || !deleteType) return;
-    
-    const endpoint = deleteType === 'income' 
-      ? `/api/budget/income-sources/${itemToDelete}`
-      : `/api/budget/recurring-expenses/${itemToDelete}`;
-    
+
+    const endpoint =
+      deleteType === 'income'
+        ? `/api/budget/income-sources/${itemToDelete}`
+        : `/api/budget/recurring-expenses/${itemToDelete}`;
+
     const response = await fetch(endpoint, { method: 'DELETE' });
     if (response.ok) {
       await loadBudgetData();
@@ -137,10 +148,7 @@ export default function BudgetPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
           Presupuesto
         </h1>
@@ -178,7 +186,13 @@ export default function BudgetPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Fuentes de Ingreso</CardTitle>
-              <Button size="sm" onClick={() => { setEditingIncome(undefined); setIncomeDialogOpen(true); }}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingIncome(undefined);
+                  setIncomeDialogOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar
               </Button>
@@ -191,21 +205,35 @@ export default function BudgetPage() {
               ) : (
                 <div className="space-y-2">
                   {incomeSources.map((source) => (
-                    <div key={source.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900">
+                    <div
+                      key={source.id}
+                      className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{source.name}</p>
-                          {source.isPrimary && <Badge variant="default" className="text-xs">Principal</Badge>}
+                          {source.isPrimary && (
+                            <Badge variant="default" className="text-xs">
+                              Principal
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-slate-500 mt-0.5">{getFrequencyLabel(source.frequency)}</p>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                          {getFrequencyLabel(source.frequency)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
-                        <p className="font-bold text-green-600 whitespace-nowrap">${source.amount.toFixed(2)}</p>
+                        <p className="font-bold text-green-600 whitespace-nowrap">
+                          ${source.amount.toFixed(2)}
+                        </p>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => { setEditingIncome(source); setIncomeDialogOpen(true); }}
+                          onClick={() => {
+                            setEditingIncome(source);
+                            setIncomeDialogOpen(true);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -231,7 +259,13 @@ export default function BudgetPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Gastos Recurrentes</CardTitle>
-              <Button size="sm" onClick={() => { setEditingExpense(undefined); setExpenseDialogOpen(true); }}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingExpense(undefined);
+                  setExpenseDialogOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar
               </Button>
@@ -244,23 +278,36 @@ export default function BudgetPage() {
               ) : (
                 <div className="space-y-2">
                   {recurringExpenses.map((expense) => (
-                    <div key={expense.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900">
+                    <div
+                      key={expense.id}
+                      className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{expense.name}</p>
-                          <Badge variant={expense.isEssential ? 'default' : 'secondary'} className="text-xs">
+                          <Badge
+                            variant={expense.isEssential ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
                             {expense.isEssential ? 'Esencial' : 'No esencial'}
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-500 mt-0.5">{getFrequencyLabel(expense.frequency)}</p>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                          {getFrequencyLabel(expense.frequency)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
-                        <p className="font-bold text-red-600 whitespace-nowrap">${expense.amount.toFixed(2)}</p>
+                        <p className="font-bold text-red-600 whitespace-nowrap">
+                          ${expense.amount.toFixed(2)}
+                        </p>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => { setEditingExpense(expense); setExpenseDialogOpen(true); }}
+                          onClick={() => {
+                            setEditingExpense(expense);
+                            setExpenseDialogOpen(true);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -305,7 +352,9 @@ export default function BudgetPage() {
       <ConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title={deleteType === 'income' ? '¿Eliminar fuente de ingreso?' : '¿Eliminar gasto recurrente?'}
+        title={
+          deleteType === 'income' ? '¿Eliminar fuente de ingreso?' : '¿Eliminar gasto recurrente?'
+        }
         description={`Esta acción no se puede deshacer. Se eliminará ${deleteType === 'income' ? 'la fuente de ingreso' : 'el gasto recurrente'} permanentemente.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
@@ -315,4 +364,3 @@ export default function BudgetPage() {
     </div>
   );
 }
-

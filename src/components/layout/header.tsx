@@ -29,7 +29,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     const fetchUser = async () => {
       try {
         const response = await fetch('/api/auth/me');
-        const data = await response.json() as ApiResponse<UserWithoutPassword>;
+        const data = (await response.json()) as ApiResponse<UserWithoutPassword>;
         if (data.success && data.data) {
           setUser(data.data);
         }
@@ -63,12 +63,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-slate-950">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuClick}
-      >
+      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
         <Menu className="h-6 w-6" />
       </Button>
 
@@ -82,7 +77,9 @@ export function Header({ onMenuClick }: HeaderProps) {
             className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate"
           >
             <span className="hidden sm:inline">Bienvenido de vuelta, </span>
-            <span className="font-semibold text-slate-900 dark:text-white">{user?.name || 'Usuario'}</span>
+            <span className="font-semibold text-slate-900 dark:text-white">
+              {user?.name || 'Usuario'}
+            </span>
           </motion.p>
         </div>
 
@@ -124,4 +121,3 @@ export function Header({ onMenuClick }: HeaderProps) {
     </header>
   );
 }
-

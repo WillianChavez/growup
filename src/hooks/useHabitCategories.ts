@@ -40,7 +40,10 @@ export function useHabitCategories() {
     }
   };
 
-  const updateCategory = async (id: string, data: Partial<HabitCategoryFormData>): Promise<HabitCategory | null> => {
+  const updateCategory = async (
+    id: string,
+    data: Partial<HabitCategoryFormData>
+  ): Promise<HabitCategory | null> => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/habit-categories/${id}`, {
@@ -82,4 +85,3 @@ export function useHabitCategories() {
     isLoading,
   };
 }
-

@@ -31,10 +31,10 @@ export async function GET(request: NextRequest) {
     const statsPromises = Array.from({ length: days }, async (_, i) => {
       const date = subDays(today, days - 1 - i);
       const dailyView = await HabitService.getDailyView(payload.userId, date);
-      
+
       return {
         date: date.toISOString(),
-        completed: dailyView.habits.filter(h => h.entry?.completed).length,
+        completed: dailyView.habits.filter((h) => h.entry?.completed).length,
         total: dailyView.habits.length,
       };
     });
@@ -53,4 +53,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -26,7 +26,8 @@ export function FloatingActionButton({
       className={cn(
         'fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg',
         'sm:hidden', // Solo visible en móvil
-        variant === 'primary' && 'bg-linear-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700',
+        variant === 'primary' &&
+          'bg-linear-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700',
         'transition-all hover:scale-110 active:scale-95',
         className
       )}
@@ -37,4 +38,3 @@ export function FloatingActionButton({
     </Button>
   );
 }
-

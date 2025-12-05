@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import { prisma } from '@/lib/db';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
@@ -72,10 +72,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error exporting data:', error);
-    return NextResponse.json(
-      { error: 'Error al exportar datos' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al exportar datos' }, { status: 500 });
   }
 }
-

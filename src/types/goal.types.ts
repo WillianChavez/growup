@@ -14,7 +14,7 @@ export interface Goal {
   completedAt: Date | null;
 }
 
-export type GoalCategory = 
+export type GoalCategory =
   | 'personal'
   | 'professional'
   | 'health'
@@ -56,4 +56,3 @@ export interface GoalStats {
   completedThisMonth: number;
   byCategory: { category: GoalCategory; count: number }[];
 }
-

@@ -36,21 +36,22 @@ export function HabitCategorySelector({ value, onChange }: CategorySelectorProps
   const { fetchCategories, createCategory } = useHabitCategories();
 
   useEffect(() => {
-    loadCategories();
+    const loadCategories = async () => {
+      const cats = await fetchCategories();
+      setCategories(cats);
+      if (cats.length > 0 && !value) {
+        onChange(cats[0].id);
+      }
+    };
+    void loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadCategories = async () => {
-    const cats = await fetchCategories();
-    setCategories(cats);
-    if (cats.length > 0 && !value) {
-      onChange(cats[0].id);
-    }
-  };
 
   const handleCreateCategory = async () => {
     const created = await createCategory(newCategory);
     if (created) {
-      await loadCategories();
+      const cats = await fetchCategories();
+      setCategories(cats);
       onChange(created.id);
       setDialogOpen(false);
       setNewCategory({ name: '', emoji: '✨', color: '#3b82f6' });
@@ -122,11 +123,24 @@ export function HabitCategorySelector({ value, onChange }: CategorySelectorProps
               <Label>Color</Label>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  '#ef4444', '#f97316', '#f59e0b', '#eab308',
-                  '#84cc16', '#22c55e', '#10b981', '#14b8a6',
-                  '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
-                  '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
-                  '#f43f5e', '#64748b'
+                  '#ef4444',
+                  '#f97316',
+                  '#f59e0b',
+                  '#eab308',
+                  '#84cc16',
+                  '#22c55e',
+                  '#10b981',
+                  '#14b8a6',
+                  '#06b6d4',
+                  '#0ea5e9',
+                  '#3b82f6',
+                  '#6366f1',
+                  '#8b5cf6',
+                  '#a855f7',
+                  '#d946ef',
+                  '#ec4899',
+                  '#f43f5e',
+                  '#64748b',
                 ].map((color) => (
                   <button
                     key={color}
@@ -161,4 +175,3 @@ export function HabitCategorySelector({ value, onChange }: CategorySelectorProps
     </>
   );
 }
-

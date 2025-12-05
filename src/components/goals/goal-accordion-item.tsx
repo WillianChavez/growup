@@ -3,7 +3,15 @@
 import { useState, useEffect, memo, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronDown, MoreVertical, Pencil, Trash2, GripVertical, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  ChevronDown,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  GripVertical,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -64,13 +72,13 @@ function GoalAccordionItemComponent({
   onCompleteGoal,
 }: GoalAccordionItemProps) {
   // Estados locales para las listas de milestones - esto evita re-renders del padre
-  const [pendingMilestones, setPendingMilestones] = useState<Milestone[]>(
-    () => (goal.milestones || []).filter((m) => !m.completed)
+  const [pendingMilestones, setPendingMilestones] = useState<Milestone[]>(() =>
+    (goal.milestones || []).filter((m) => !m.completed)
   );
-  const [completedMilestones, setCompletedMilestones] = useState<Milestone[]>(
-    () => (goal.milestones || []).filter((m) => m.completed)
+  const [completedMilestones, setCompletedMilestones] = useState<Milestone[]>(() =>
+    (goal.milestones || []).filter((m) => m.completed)
   );
-  
+
   const [draggedMilestone, setDraggedMilestone] = useState<Milestone | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [dragOverColumn, setDragOverColumn] = useState<'pending' | 'completed' | null>(null);
@@ -86,17 +94,21 @@ function GoalAccordionItemComponent({
       setPendingMilestones(goalMilestones.filter((m) => !m.completed));
       setCompletedMilestones(goalMilestones.filter((m) => m.completed));
     }
-  }, [goal.id]); // Solo dependemos del ID, no de milestones (manejamos eso localmente)
+  }, [goal.id, goal.milestones]); // Incluir milestones para sincronizar cuando cambien externamente
 
   const totalMilestones = pendingMilestones.length + completedMilestones.length;
-  const progress = totalMilestones > 0 ? (completedMilestones.length / totalMilestones) * 100 : goal.progress;
-  
+  const progress =
+    totalMilestones > 0 ? (completedMilestones.length / totalMilestones) * 100 : goal.progress;
+
   // Verificar si todos los hitos están completados
-  const allMilestonesCompleted = totalMilestones > 0 && completedMilestones.length === totalMilestones && goal.status !== 'completed';
+  const allMilestonesCompleted =
+    totalMilestones > 0 &&
+    completedMilestones.length === totalMilestones &&
+    goal.status !== 'completed';
 
   const handleDragStart = (e: React.DragEvent, milestone: Milestone) => {
     setDraggedMilestone(milestone);
-    
+
     // Crear un elemento fantasma personalizado para el drag
     const dragElement = document.createElement('div');
     dragElement.style.cssText = `
@@ -115,7 +127,7 @@ function GoalAccordionItemComponent({
     dragElement.textContent = milestone.title;
     document.body.appendChild(dragElement);
     e.dataTransfer.setDragImage(dragElement, 0, 0);
-    
+
     // Remover el elemento después del drag
     setTimeout(() => document.body.removeChild(dragElement), 0);
   };
@@ -140,9 +152,9 @@ function GoalAccordionItemComponent({
   const handleDrop = async (e: React.DragEvent, targetCompleted: boolean) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     setDragOverColumn(null);
-    
+
     if (!draggedMilestone) return;
 
     // Si ya está en la columna correcta, no hacer nada
@@ -160,20 +172,28 @@ function GoalAccordionItemComponent({
 
     if (targetCompleted) {
       // Mover de pending a completed
-      setPendingMilestones(prev => prev.filter(m => m.id !== draggedMilestone.id));
-      setCompletedMilestones(prev => [...prev, updatedMilestone]);
+      setPendingMilestones((prev) => prev.filter((m) => m.id !== draggedMilestone.id));
+      setCompletedMilestones((prev) => [...prev, updatedMilestone]);
     } else {
       // Mover de completed a pending
-      setCompletedMilestones(prev => prev.filter(m => m.id !== draggedMilestone.id));
-      setPendingMilestones(prev => [...prev, updatedMilestone]);
+      setCompletedMilestones((prev) => prev.filter((m) => m.id !== draggedMilestone.id));
+      setPendingMilestones((prev) => [...prev, updatedMilestone]);
     }
 
     setDraggedMilestone(null);
 
     // Sincronizar con el servidor en segundo plano
     const allMilestones = targetCompleted
-      ? [...pendingMilestones.filter(m => m.id !== draggedMilestone.id), ...completedMilestones, updatedMilestone]
-      : [...pendingMilestones, updatedMilestone, ...completedMilestones.filter(m => m.id !== draggedMilestone.id)];
+      ? [
+          ...pendingMilestones.filter((m) => m.id !== draggedMilestone.id),
+          ...completedMilestones,
+          updatedMilestone,
+        ]
+      : [
+          ...pendingMilestones,
+          updatedMilestone,
+          ...completedMilestones.filter((m) => m.id !== draggedMilestone.id),
+        ];
 
     setIsUpdating(true);
     try {
@@ -182,11 +202,11 @@ function GoalAccordionItemComponent({
       console.error('[GoalAccordion] Error updating milestone:', error);
       // Revertir en caso de error
       if (targetCompleted) {
-        setPendingMilestones(prev => [...prev, draggedMilestone]);
-        setCompletedMilestones(prev => prev.filter(m => m.id !== draggedMilestone.id));
+        setPendingMilestones((prev) => [...prev, draggedMilestone]);
+        setCompletedMilestones((prev) => prev.filter((m) => m.id !== draggedMilestone.id));
       } else {
-        setCompletedMilestones(prev => [...prev, draggedMilestone]);
-        setPendingMilestones(prev => prev.filter(m => m.id !== draggedMilestone.id));
+        setCompletedMilestones((prev) => [...prev, draggedMilestone]);
+        setPendingMilestones((prev) => prev.filter((m) => m.id !== draggedMilestone.id));
       }
     } finally {
       setIsUpdating(false);
@@ -209,18 +229,26 @@ function GoalAccordionItemComponent({
     // Actualizar estados locales inmediatamente
     if (newCompleted) {
       // Mover de pending a completed
-      setPendingMilestones(prev => prev.filter(m => m.id !== milestone.id));
-      setCompletedMilestones(prev => [...prev, updatedMilestone]);
+      setPendingMilestones((prev) => prev.filter((m) => m.id !== milestone.id));
+      setCompletedMilestones((prev) => [...prev, updatedMilestone]);
     } else {
       // Mover de completed a pending
-      setCompletedMilestones(prev => prev.filter(m => m.id !== milestone.id));
-      setPendingMilestones(prev => [...prev, updatedMilestone]);
+      setCompletedMilestones((prev) => prev.filter((m) => m.id !== milestone.id));
+      setPendingMilestones((prev) => [...prev, updatedMilestone]);
     }
 
     // Sincronizar con el servidor en segundo plano
     const allMilestones = newCompleted
-      ? [...pendingMilestones.filter(m => m.id !== milestone.id), ...completedMilestones, updatedMilestone]
-      : [...pendingMilestones, updatedMilestone, ...completedMilestones.filter(m => m.id !== milestone.id)];
+      ? [
+          ...pendingMilestones.filter((m) => m.id !== milestone.id),
+          ...completedMilestones,
+          updatedMilestone,
+        ]
+      : [
+          ...pendingMilestones,
+          updatedMilestone,
+          ...completedMilestones.filter((m) => m.id !== milestone.id),
+        ];
 
     setIsUpdating(true);
     try {
@@ -229,11 +257,11 @@ function GoalAccordionItemComponent({
       console.error('Error updating milestone:', error);
       // Revertir en caso de error
       if (newCompleted) {
-        setPendingMilestones(prev => [...prev, milestone]);
-        setCompletedMilestones(prev => prev.filter(m => m.id !== milestone.id));
+        setPendingMilestones((prev) => [...prev, milestone]);
+        setCompletedMilestones((prev) => prev.filter((m) => m.id !== milestone.id));
       } else {
-        setCompletedMilestones(prev => [...prev, milestone]);
-        setPendingMilestones(prev => prev.filter(m => m.id !== milestone.id));
+        setCompletedMilestones((prev) => [...prev, milestone]);
+        setPendingMilestones((prev) => prev.filter((m) => m.id !== milestone.id));
       }
     } finally {
       setIsUpdating(false);
@@ -284,9 +312,7 @@ function GoalAccordionItemComponent({
           </div>
 
           <div className="flex items-center gap-2">
-            {isUpdating && (
-              <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-            )}
+            {isUpdating && <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />}
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button size="icon" variant="ghost">
@@ -299,7 +325,7 @@ function GoalAccordionItemComponent({
                   Editar
                 </DropdownMenuItem>
                 {allMilestonesCompleted && (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={async () => {
                       await onCompleteGoal(goal.id);
                     }}
@@ -316,10 +342,7 @@ function GoalAccordionItemComponent({
               </DropdownMenuContent>
             </DropdownMenu>
             <ChevronDown
-              className={cn(
-                'h-5 w-5 text-slate-500 transition-transform',
-                isOpen && 'rotate-180'
-              )}
+              className={cn('h-5 w-5 text-slate-500 transition-transform', isOpen && 'rotate-180')}
             />
           </div>
         </div>
@@ -332,8 +355,10 @@ function GoalAccordionItemComponent({
             {/* Pending Milestones */}
             <div
               className={cn(
-                "space-y-2 p-2 rounded-lg transition-all duration-300 ease-in-out",
-                draggedMilestone && draggedMilestone.completed && "bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-300 dark:ring-blue-700"
+                'space-y-2 p-2 rounded-lg transition-all duration-300 ease-in-out',
+                draggedMilestone &&
+                  draggedMilestone.completed &&
+                  'bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-300 dark:ring-blue-700'
               )}
               onDragOver={handleDragOver}
               onDragEnter={() => handleDragEnter('pending')}
@@ -347,9 +372,11 @@ function GoalAccordionItemComponent({
                 {/* Preview cuando se arrastra sobre esta columna */}
                 {dragOverColumn === 'pending' && draggedMilestone && draggedMilestone.completed && (
                   <div className="flex items-center gap-2 p-3 bg-blue-100 dark:bg-blue-900/30 border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-lg animate-pulse">
-                    <GripVertical className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <GripVertical className="h-4 w-4 text-blue-500 shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">{draggedMilestone.title}</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        {draggedMilestone.title}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -361,11 +388,11 @@ function GoalAccordionItemComponent({
                     onDragEnd={handleDragEnd}
                     onClick={() => handleMilestoneClick(milestone)}
                     className={cn(
-                      "flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border rounded-lg hover:shadow-md transition-all duration-300 ease-out cursor-move group",
-                      draggedMilestone?.id === milestone.id && "opacity-50 scale-95"
+                      'flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border rounded-lg hover:shadow-md transition-all duration-300 ease-out cursor-move group',
+                      draggedMilestone?.id === milestone.id && 'opacity-50 scale-95'
                     )}
                   >
-                    <GripVertical className="h-4 w-4 text-slate-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <GripVertical className="h-4 w-4 text-slate-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="flex-1">
                       <p className="text-sm">{milestone.title}</p>
                     </div>
@@ -382,8 +409,10 @@ function GoalAccordionItemComponent({
             {/* Completed Milestones */}
             <div
               className={cn(
-                "space-y-2 p-2 rounded-lg transition-all duration-300 ease-in-out",
-                draggedMilestone && !draggedMilestone.completed && "bg-green-50 dark:bg-green-950/20 ring-2 ring-green-300 dark:ring-green-700"
+                'space-y-2 p-2 rounded-lg transition-all duration-300 ease-in-out',
+                draggedMilestone &&
+                  !draggedMilestone.completed &&
+                  'bg-green-50 dark:bg-green-950/20 ring-2 ring-green-300 dark:ring-green-700'
               )}
               onDragOver={handleDragOver}
               onDragEnter={() => handleDragEnter('completed')}
@@ -395,14 +424,18 @@ function GoalAccordionItemComponent({
               </h4>
               <div className="space-y-2 min-h-[100px]">
                 {/* Preview cuando se arrastra sobre esta columna */}
-                {dragOverColumn === 'completed' && draggedMilestone && !draggedMilestone.completed && (
-                  <div className="flex items-center gap-2 p-3 bg-green-100 dark:bg-green-900/30 border-2 border-dashed border-green-400 dark:border-green-600 rounded-lg animate-pulse">
-                    <GripVertical className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm text-green-700 dark:text-green-300 line-through">{draggedMilestone.title}</p>
+                {dragOverColumn === 'completed' &&
+                  draggedMilestone &&
+                  !draggedMilestone.completed && (
+                    <div className="flex items-center gap-2 p-3 bg-green-100 dark:bg-green-900/30 border-2 border-dashed border-green-400 dark:border-green-600 rounded-lg animate-pulse">
+                      <GripVertical className="h-4 w-4 text-green-500 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm text-green-700 dark:text-green-300 line-through">
+                          {draggedMilestone.title}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 {completedMilestones.map((milestone) => (
                   <div
                     key={milestone.id}
@@ -411,11 +444,11 @@ function GoalAccordionItemComponent({
                     onDragEnd={handleDragEnd}
                     onClick={() => handleMilestoneClick(milestone)}
                     className={cn(
-                      "flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg hover:shadow-md transition-all duration-300 ease-out cursor-move group",
-                      draggedMilestone?.id === milestone.id && "opacity-50 scale-95"
+                      'flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg hover:shadow-md transition-all duration-300 ease-out cursor-move group',
+                      draggedMilestone?.id === milestone.id && 'opacity-50 scale-95'
                     )}
                   >
-                    <GripVertical className="h-4 w-4 text-slate-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <GripVertical className="h-4 w-4 text-slate-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="flex-1">
                       <p className="text-sm line-through text-slate-500 dark:text-slate-400">
                         {milestone.title}
@@ -455,25 +488,24 @@ function GoalAccordionItemComponent({
 export const GoalAccordionItem = memo(GoalAccordionItemComponent, (prevProps, nextProps) => {
   // Si cambia el ID, es un goal diferente
   if (prevProps.goal.id !== nextProps.goal.id) return false;
-  
+
   // Si cambia el estado de apertura, necesitamos re-renderizar
   if (prevProps.isOpen !== nextProps.isOpen) return false;
-  
+
   // Comparar milestones - solo re-renderizar si realmente cambiaron
   const prevMilestones = JSON.stringify(prevProps.goal.milestones || []);
   const nextMilestones = JSON.stringify(nextProps.goal.milestones || []);
   if (prevMilestones !== nextMilestones) return false;
-  
+
   // Comparar progreso
   if (prevProps.goal.progress !== nextProps.goal.progress) return false;
-  
+
   // Comparar otras propiedades importantes del goal
   if (prevProps.goal.title !== nextProps.goal.title) return false;
   if (prevProps.goal.status !== nextProps.goal.status) return false;
   if (prevProps.goal.description !== nextProps.goal.description) return false;
-  
+
   // Si el contenido del goal no cambió, ignoramos cambios en funciones inline
   // (las funciones inline se recrean en cada render pero hacen lo mismo)
   return true;
 });
-

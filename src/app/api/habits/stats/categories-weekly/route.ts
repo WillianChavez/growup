@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HabitService } from '@/services/habit.service';
 import { verifyToken } from '@/lib/jwt';
 import type { ApiResponse } from '@/types/api.types';
-import { subDays, startOfDay, format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { subDays, startOfDay } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,15 +30,18 @@ export async function GET(request: NextRequest) {
     const habits = await HabitService.findAllByUser(payload.userId, false);
 
     // Agrupar por categoría
-    const categoryMap = new Map<string, { 
-      name: string; 
-      emoji: string; 
-      color: string;
-      weeklyData: number[];
-    }>();
+    const categoryMap = new Map<
+      string,
+      {
+        name: string;
+        emoji: string;
+        color: string;
+        weeklyData: number[];
+      }
+    >();
 
     // Inicializar categorías
-    habits.forEach(habit => {
+    habits.forEach((habit) => {
       if (habit.category && !categoryMap.has(habit.category.id)) {
         categoryMap.set(habit.category.id, {
           name: habit.category.name,
@@ -53,7 +55,6 @@ export async function GET(request: NextRequest) {
     // Obtener datos de cada semana
     const today = startOfDay(new Date());
     for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
-      const weekStart = subDays(today, (weeks - weekIndex) * 7);
       const weekEnd = subDays(today, (weeks - weekIndex - 1) * 7);
 
       // Para cada día de la semana
@@ -61,9 +62,9 @@ export async function GET(request: NextRequest) {
         const date = subDays(weekEnd, day);
         if (date <= today) {
           const dailyView = await HabitService.getDailyView(payload.userId, date);
-          
+
           // Contar completados por categoría
-          dailyView.habits.forEach(habitView => {
+          dailyView.habits.forEach((habitView) => {
             if (habitView.entry?.completed && habitView.habit.category) {
               const categoryData = categoryMap.get(habitView.habit.category.id);
               if (categoryData) {
@@ -76,15 +77,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Convertir a array con formato para el gráfico
-    const result = Array.from(categoryMap.values()).map(cat => ({
+    const result = Array.from(categoryMap.values()).map((cat) => ({
       category: `${cat.emoji} ${cat.name}`,
       color: cat.color,
-      ...Object.fromEntries(
-        cat.weeklyData.map((count, index) => [
-          `semana${index + 1}`,
-          count
-        ])
-      ),
+      ...Object.fromEntries(cat.weeklyData.map((count, index) => [`semana${index + 1}`, count])),
     }));
 
     return NextResponse.json<ApiResponse>({
@@ -99,4 +95,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

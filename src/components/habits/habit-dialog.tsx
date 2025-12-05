@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,7 +40,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
       alert('Por favor selecciona una categoría');
       return;
     }
-    
+
     setLoading(true);
     try {
       await onSave(formData);

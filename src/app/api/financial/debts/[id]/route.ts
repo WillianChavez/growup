@@ -3,10 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import { FinancialService } from '@/services/financial.service';
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
@@ -27,10 +24,7 @@ export async function PATCH(
     return NextResponse.json({ success: true, data: debt });
   } catch (error) {
     console.error('Error updating debt:', error);
-    return NextResponse.json(
-      { error: 'Error al actualizar deuda' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al actualizar deuda' }, { status: 500 });
   }
 }
 
@@ -57,10 +51,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting debt:', error);
-    return NextResponse.json(
-      { error: 'Error al eliminar deuda' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al eliminar deuda' }, { status: 500 });
   }
 }
-

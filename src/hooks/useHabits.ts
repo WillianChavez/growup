@@ -15,7 +15,7 @@ export function useHabits() {
 
     try {
       const response = await fetch(`/api/habits?includeArchived=${includeArchived}`);
-      const data = await response.json() as ApiResponse<Habit[]>;
+      const data = (await response.json()) as ApiResponse<Habit[]>;
 
       if (!data.success) {
         throw new Error(data.error || 'Error al obtener hábitos');
@@ -43,7 +43,7 @@ export function useHabits() {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json() as ApiResponse<Habit>;
+      const result = (await response.json()) as ApiResponse<Habit>;
 
       if (!result.success) {
         throw new Error(result.error || 'Error al crear hábito');
@@ -61,34 +61,37 @@ export function useHabits() {
     }
   }, []);
 
-  const updateHabit = useCallback(async (id: string, data: Partial<HabitFormData>): Promise<Habit | null> => {
-    setIsLoading(true);
-    setError(null);
+  const updateHabit = useCallback(
+    async (id: string, data: Partial<HabitFormData>): Promise<Habit | null> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch(`/api/habits/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      try {
+        const response = await fetch(`/api/habits/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
 
-      const result = await response.json() as ApiResponse<Habit>;
+        const result = (await response.json()) as ApiResponse<Habit>;
 
-      if (!result.success) {
-        throw new Error(result.error || 'Error al actualizar hábito');
+        if (!result.success) {
+          throw new Error(result.error || 'Error al actualizar hábito');
+        }
+
+        toast.success('Hábito actualizado exitosamente');
+        return result.data || null;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error de conexión';
+        setError(message);
+        toast.error(message);
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-
-      toast.success('Hábito actualizado exitosamente');
-      return result.data || null;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error de conexión';
-      setError(message);
-      toast.error(message);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   const deleteHabit = useCallback(async (id: string): Promise<boolean> => {
     setIsLoading(true);
@@ -99,7 +102,7 @@ export function useHabits() {
         method: 'DELETE',
       });
 
-      const result = await response.json() as ApiResponse;
+      const result = (await response.json()) as ApiResponse;
 
       if (!result.success) {
         throw new Error(result.error || 'Error al eliminar hábito');
@@ -117,63 +120,65 @@ export function useHabits() {
     }
   }, []);
 
-  const logEntry = useCallback(async (
-    habitId: string,
-    date: Date,
-    completed: boolean,
-    notes?: string
-  ): Promise<HabitEntry | null> => {
-    try {
-      const response = await fetch(`/api/habits/${habitId}/entries`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: date.toISOString(), completed, notes }),
-      });
+  const logEntry = useCallback(
+    async (
+      habitId: string,
+      date: Date,
+      completed: boolean,
+      notes?: string
+    ): Promise<HabitEntry | null> => {
+      try {
+        const response = await fetch(`/api/habits/${habitId}/entries`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: date.toISOString(), completed, notes }),
+        });
 
-      const result = await response.json() as ApiResponse<HabitEntry>;
+        const result = (await response.json()) as ApiResponse<HabitEntry>;
 
-      if (!result.success) {
-        throw new Error(result.error || 'Error al registrar entrada');
+        if (!result.success) {
+          throw new Error(result.error || 'Error al registrar entrada');
+        }
+
+        toast.success(completed ? '¡Hábito completado!' : 'Entrada actualizada');
+        return result.data || null;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error de conexión';
+        toast.error(message);
+        return null;
       }
+    },
+    []
+  );
 
-      toast.success(completed ? '¡Hábito completado!' : 'Entrada actualizada');
-      return result.data || null;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error de conexión';
-      toast.error(message);
-      return null;
-    }
-  }, []);
+  const fetchEntries = useCallback(
+    async (habitId: string, startDate?: Date, endDate?: Date): Promise<HabitEntry[]> => {
+      try {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate.toISOString());
+        if (endDate) params.append('endDate', endDate.toISOString());
 
-  const fetchEntries = useCallback(async (
-    habitId: string,
-    startDate?: Date,
-    endDate?: Date
-  ): Promise<HabitEntry[]> => {
-    try {
-      const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate.toISOString());
-      if (endDate) params.append('endDate', endDate.toISOString());
+        const response = await fetch(`/api/habits/${habitId}/entries?${params}`);
+        const data = (await response.json()) as ApiResponse<HabitEntry[]>;
 
-      const response = await fetch(`/api/habits/${habitId}/entries?${params}`);
-      const data = await response.json() as ApiResponse<HabitEntry[]>;
+        if (!data.success) {
+          throw new Error(data.error || 'Error al obtener entradas');
+        }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Error al obtener entradas');
+        return data.data || [];
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error de conexión';
+        toast.error(message);
+        return [];
       }
-
-      return data.data || [];
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error de conexión';
-      toast.error(message);
-      return [];
-    }
-  }, []);
+    },
+    []
+  );
 
   const fetchStats = useCallback(async (habitId: string): Promise<HabitStats | null> => {
     try {
       const response = await fetch(`/api/habits/${habitId}/stats`);
-      const data = await response.json() as ApiResponse<HabitStats>;
+      const data = (await response.json()) as ApiResponse<HabitStats>;
 
       if (!data.success) {
         throw new Error(data.error || 'Error al obtener estadísticas');
@@ -199,4 +204,3 @@ export function useHabits() {
     fetchStats,
   };
 }
-

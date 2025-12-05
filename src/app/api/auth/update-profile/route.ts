@@ -9,27 +9,18 @@ export async function PATCH(request: NextRequest) {
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const payload = await verifyToken(token);
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
     const { name } = await request.json();
 
     if (!name || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'El nombre es requerido' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
     }
 
     const user = await prisma.user.update({
@@ -49,10 +40,6 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error updating profile:', error);
-    return NextResponse.json(
-      { error: 'Error al actualizar perfil' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 });
   }
 }
-

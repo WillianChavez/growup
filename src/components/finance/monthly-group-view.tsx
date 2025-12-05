@@ -18,14 +18,14 @@ interface MonthlyGroupViewProps {
 }
 
 export function MonthlyGroupView({ groups, onEdit, onDelete }: MonthlyGroupViewProps) {
-  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set([
-    format(new Date(), 'yyyy-MM')
-  ]));
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(
+    new Set([format(new Date(), 'yyyy-MM')])
+  );
 
   const isMobile = useIsMobile();
 
   const toggleMonth = (monthKey: string) => {
-    setExpandedMonths(prev => {
+    setExpandedMonths((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(monthKey)) {
         newSet.delete(monthKey);
@@ -64,25 +64,28 @@ export function MonthlyGroupView({ groups, onEdit, onDelete }: MonthlyGroupViewP
               {/* Stats Section */}
               {isMobile && (
                 <div className="text-left sm:text-right w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
-                <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-2 sm:gap-4">
-                  <div className="sm:flex-none min-w-0 text-center sm:text-left">
-                    <p className="text-[10px] sm:text-xs text-slate-500">Ingresos</p>
-                    <p className="font-semibold text-xs sm:text-base text-green-600 truncate">
-                      ${group.totalIncome.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="sm:flex-none min-w-0 text-center sm:text-left">
-                    <p className="text-[10px] sm:text-xs text-slate-500">Gastos</p>
-                    <p className="font-semibold text-xs sm:text-base text-red-600 truncate">
-                      ${group.totalExpenses.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="sm:flex-none min-w-0 text-center sm:text-left">
-                    <p className="text-[10px] sm:text-xs text-slate-500">Balance</p>
-                    <p className={`font-bold text-xs sm:text-lg truncate ${group.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                      {group.balance >= 0 ? '+' : ''}${group.balance.toFixed(2)}
-                    </p>
+                  <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-2 sm:gap-4">
+                    <div className="sm:flex-none min-w-0 text-center sm:text-left">
+                      <p className="text-[10px] sm:text-xs text-slate-500">Ingresos</p>
+                      <p className="font-semibold text-xs sm:text-base text-green-600 truncate">
+                        ${group.totalIncome.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="sm:flex-none min-w-0 text-center sm:text-left">
+                      <p className="text-[10px] sm:text-xs text-slate-500">Gastos</p>
+                      <p className="font-semibold text-xs sm:text-base text-red-600 truncate">
+                        ${group.totalExpenses.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="sm:flex-none min-w-0 text-center sm:text-left">
+                      <p className="text-[10px] sm:text-xs text-slate-500">Balance</p>
+                      <p
+                        className={`font-bold text-xs sm:text-lg truncate ${
+                          group.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {group.balance >= 0 ? '+' : ''}${group.balance.toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -111,33 +114,34 @@ export function MonthlyGroupView({ groups, onEdit, onDelete }: MonthlyGroupViewP
                     </div>
                   </div>
 
-
-              {!isMobile && (
-                <div className="text-left sm:text-right w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
-                <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-2 sm:gap-4">
-                  <div className="sm:flex-none min-w-0 text-center sm:text-left">
-                    <p className="text-[10px] sm:text-xs text-slate-500">Ingresos</p>
-                    <p className="font-semibold text-xs sm:text-base text-green-600 truncate">
-                      ${group.totalIncome.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="sm:flex-none min-w-0 text-center sm:text-left">
-                    <p className="text-[10px] sm:text-xs text-slate-500">Gastos</p>
-                    <p className="font-semibold text-xs sm:text-base text-red-600 truncate">
-                      ${group.totalExpenses.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="sm:flex-none min-w-0 text-center sm:text-left">
-                    <p className="text-[10px] sm:text-xs text-slate-500">Balance</p>
-                    <p className={`font-bold text-xs sm:text-lg truncate ${group.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                      {group.balance >= 0 ? '+' : ''}${group.balance.toFixed(2)}
-                    </p>
+                  {!isMobile && (
+                    <div className="text-left sm:text-right w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+                      <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-2 sm:gap-4">
+                        <div className="sm:flex-none min-w-0 text-center sm:text-left">
+                          <p className="text-[10px] sm:text-xs text-slate-500">Ingresos</p>
+                          <p className="font-semibold text-xs sm:text-base text-green-600 truncate">
+                            ${group.totalIncome.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="sm:flex-none min-w-0 text-center sm:text-left">
+                          <p className="text-[10px] sm:text-xs text-slate-500">Gastos</p>
+                          <p className="font-semibold text-xs sm:text-base text-red-600 truncate">
+                            ${group.totalExpenses.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="sm:flex-none min-w-0 text-center sm:text-left">
+                          <p className="text-[10px] sm:text-xs text-slate-500">Balance</p>
+                          <p
+                            className={`font-bold text-xs sm:text-lg truncate ${
+                              group.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}
+                          >
+                            {group.balance >= 0 ? '+' : ''}${group.balance.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-
+                  )}
                 </Button>
               </div>
 
@@ -172,4 +176,3 @@ export function MonthlyGroupView({ groups, onEdit, onDelete }: MonthlyGroupViewP
     </div>
   );
 }
-

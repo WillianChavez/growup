@@ -15,7 +15,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TransactionCategorySelector } from '@/components/finance/category-selector';
@@ -30,7 +36,13 @@ interface TransactionDialogProps {
   onSave: (data: TransactionFormData) => Promise<void>;
 }
 
-export function TransactionDialog({ open, onOpenChange, transaction, type, onSave }: TransactionDialogProps) {
+export function TransactionDialog({
+  open,
+  onOpenChange,
+  transaction,
+  type,
+  onSave,
+}: TransactionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: 'expense',
@@ -61,7 +73,7 @@ export function TransactionDialog({ open, onOpenChange, transaction, type, onSav
       alert('Por favor selecciona una categoría');
       return;
     }
-    
+
     setLoading(true);
     try {
       await onSave(formData);
@@ -78,10 +90,14 @@ export function TransactionDialog({ open, onOpenChange, transaction, type, onSav
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {transaction ? 'Editar Transacción' : `Nuevo ${formData.type === 'income' ? 'Ingreso' : 'Gasto'}`}
+            {transaction
+              ? 'Editar Transacción'
+              : `Nuevo ${formData.type === 'income' ? 'Ingreso' : 'Gasto'}`}
           </DialogTitle>
           <DialogDescription>
-            {transaction ? 'Modifica los detalles de la transacción' : 'Registra un nuevo movimiento'}
+            {transaction
+              ? 'Modifica los detalles de la transacción'
+              : 'Registra un nuevo movimiento'}
           </DialogDescription>
         </DialogHeader>
 

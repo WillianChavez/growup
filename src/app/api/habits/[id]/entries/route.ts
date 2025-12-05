@@ -3,10 +3,7 @@ import { HabitService } from '@/services/habit.service';
 import { verifyToken } from '@/lib/jwt';
 import type { ApiResponse } from '@/types/api.types';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -36,8 +33,8 @@ export async function POST(
 
     const { id } = await params;
     const entry = await HabitService.logEntry(
-      id,              // habitId primero
-      payload.userId,  // userId segundo
+      id, // habitId primero
+      payload.userId, // userId segundo
       new Date(date),
       completed ?? false,
       notes
@@ -57,10 +54,7 @@ export async function POST(
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -79,16 +73,15 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined;
-    const endDate = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined;
+    const startDate = searchParams.get('startDate')
+      ? new Date(searchParams.get('startDate')!)
+      : undefined;
+    const endDate = searchParams.get('endDate')
+      ? new Date(searchParams.get('endDate')!)
+      : undefined;
 
     const { id } = await params;
-    const entries = await HabitService.getEntries(
-      id,
-      payload.userId,
-      startDate,
-      endDate
-    );
+    const entries = await HabitService.getEntries(id, payload.userId, startDate, endDate);
 
     return NextResponse.json<ApiResponse>({
       success: true,
@@ -102,4 +95,3 @@ export async function GET(
     );
   }
 }
-

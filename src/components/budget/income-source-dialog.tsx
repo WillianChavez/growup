@@ -3,11 +3,29 @@
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { IncomeSource, IncomeSourceFormData } from '@/types/budget.types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type {
+  IncomeSource,
+  IncomeSourceFormData,
+  IncomeFrequency,
+  IncomeCategory,
+} from '@/types/budget.types';
 
 interface IncomeSourceDialogProps {
   open: boolean;
@@ -16,7 +34,12 @@ interface IncomeSourceDialogProps {
   onSave: (data: IncomeSourceFormData) => Promise<void>;
 }
 
-export function IncomeSourceDialog({ open, onOpenChange, incomeSource, onSave }: IncomeSourceDialogProps) {
+export function IncomeSourceDialog({
+  open,
+  onOpenChange,
+  incomeSource,
+  onSave,
+}: IncomeSourceDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<IncomeSourceFormData>({
     name: '',
@@ -55,9 +78,13 @@ export function IncomeSourceDialog({ open, onOpenChange, incomeSource, onSave }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{incomeSource ? 'Editar Fuente de Ingreso' : 'Nueva Fuente de Ingreso'}</DialogTitle>
+          <DialogTitle>
+            {incomeSource ? 'Editar Fuente de Ingreso' : 'Nueva Fuente de Ingreso'}
+          </DialogTitle>
           <DialogDescription>
-            {incomeSource ? 'Modifica los detalles de la fuente' : 'Registra una nueva fuente de ingreso'}
+            {incomeSource
+              ? 'Modifica los detalles de la fuente'
+              : 'Registra una nueva fuente de ingreso'}
           </DialogDescription>
         </DialogHeader>
 
@@ -94,7 +121,12 @@ export function IncomeSourceDialog({ open, onOpenChange, incomeSource, onSave }:
 
             <div className="space-y-2">
               <Label>Frecuencia *</Label>
-              <Select value={formData.frequency} onValueChange={(value: any) => setFormData({ ...formData, frequency: value })}>
+              <Select
+                value={formData.frequency}
+                onValueChange={(value: IncomeFrequency) =>
+                  setFormData({ ...formData, frequency: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -110,7 +142,12 @@ export function IncomeSourceDialog({ open, onOpenChange, incomeSource, onSave }:
 
           <div className="space-y-2">
             <Label>Categoría *</Label>
-            <Select value={formData.category} onValueChange={(value: any) => setFormData({ ...formData, category: value })}>
+            <Select
+              value={formData.category}
+              onValueChange={(value: IncomeCategory) =>
+                setFormData({ ...formData, category: value })
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -152,4 +189,3 @@ export function IncomeSourceDialog({ open, onOpenChange, incomeSource, onSave }:
     </Dialog>
   );
 }
-

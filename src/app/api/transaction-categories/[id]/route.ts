@@ -10,10 +10,7 @@ const categorySchema = z.object({
   type: z.enum(['income', 'expense', 'both']).optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -69,10 +66,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -95,7 +89,10 @@ export async function DELETE(
 
     if (!success) {
       return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No se pudo eliminar la categoría (puede tener transacciones asociadas)' },
+        {
+          success: false,
+          error: 'No se pudo eliminar la categoría (puede tener transacciones asociadas)',
+        },
         { status: 400 }
       );
     }
@@ -112,4 +109,3 @@ export async function DELETE(
     );
   }
 }
-

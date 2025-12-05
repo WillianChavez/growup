@@ -5,6 +5,7 @@ Una aplicación progresiva (PWA) de crecimiento personal construida con Next.js 
 ## ✨ Características
 
 ### 🎯 Hábitos
+
 - Tracker diario interactivo con checkboxes
 - Calendario mensual con heatmap de completitud
 - Categorías personalizables con emojis
@@ -12,6 +13,7 @@ Una aplicación progresiva (PWA) de crecimiento personal construida con Next.js 
 - Vista organizada por tabs (Hoy, Calendario, Todos)
 
 ### 💰 Finanzas Personales
+
 - Dos botones dedicados: "Agregar Ingreso" y "Agregar Gasto"
 - Vista agrupada por mes (collapsible)
 - Categorías personalizables con emojis
@@ -19,16 +21,19 @@ Una aplicación progresiva (PWA) de crecimiento personal construida con Next.js 
 - Filtros por fecha
 
 ### 📚 Lectura
+
 - Seguimiento de libros (leyendo, completados, pendientes)
 - Gestión de citas favoritas
 - Estadísticas de lectura
 
 ### 🎯 Metas
+
 - Seguimiento de objetivos personales
 - Milestones y progreso
 - Prioridades y categorías
 
 ### 📊 Dashboard
+
 - Resumen de todas las áreas
 - Gráficos interactivos
 - Quick stats y acciones rápidas
@@ -75,10 +80,12 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 Las categorías por defecto se crean **automáticamente** al registrar un usuario nuevo.
 
 **Categorías incluidas automáticamente:**
+
 - **Hábitos**: 10 categorías (Salud, Productividad, Aprendizaje, Fitness, etc.)
 - **Finanzas**: 23 categorías (15 gastos + 8 ingresos)
 
 Si ya tienes usuarios sin categorías, ejecuta:
+
 ```bash
 pnpm prisma:seed
 ```
@@ -131,6 +138,7 @@ pnpm dlx shadcn@latest add [component-name]
 ```
 
 Componentes instalados:
+
 - button, input, label, card, dialog
 - select, textarea, calendar, dropdown-menu
 - tabs, badge, avatar, progress
@@ -139,6 +147,7 @@ Componentes instalados:
 ## 🔐 Autenticación
 
 El sistema de autenticación incluye:
+
 - Registro de usuarios con email y contraseña
 - Middleware para proteger rutas
 - Logout
@@ -146,6 +155,7 @@ El sistema de autenticación incluye:
 ## 📱 PWA
 
 La aplicación está configurada como PWA con:
+
 - Manifest.json
 - Soporte offline (próximamente)
 - Instalable en dispositivos móviles
@@ -153,15 +163,18 @@ La aplicación está configurada como PWA con:
 ## 🐛 Solución de Problemas
 
 ### Error: "Failed to fetch..."
+
 - Asegúrate de haber creado un usuario
 - Verifica que el seed se haya ejecutado con el userId correcto
 
 ### Reset de base de datos
+
 ```bash
 pnpm prisma db push --force-reset
 ```
 
 ### Ver logs de Prisma
+
 ```bash
 # En src/lib/prisma.ts, descomentar:
 # log: ['query', 'error', 'warn'],
@@ -178,6 +191,7 @@ pnpm prisma db push --force-reset
 ## 🤝 Contribuir
 
 Este es un proyecto personal de crecimiento. Si deseas contribuir:
+
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
 3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)

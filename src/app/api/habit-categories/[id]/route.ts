@@ -7,13 +7,13 @@ import { z } from 'zod';
 const categorySchema = z.object({
   name: z.string().min(1).max(50).optional(),
   emoji: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -42,11 +42,7 @@ export async function PATCH(
       );
     }
 
-    const category = await HabitCategoryService.update(
-      params.id,
-      payload.userId,
-      validation.data
-    );
+    const category = await HabitCategoryService.update(params.id, payload.userId, validation.data);
 
     if (!category) {
       return NextResponse.json<ApiResponse>(
@@ -69,10 +65,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -95,7 +88,10 @@ export async function DELETE(
 
     if (!success) {
       return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No se pudo eliminar la categoría (puede tener hábitos asociados)' },
+        {
+          success: false,
+          error: 'No se pudo eliminar la categoría (puede tener hábitos asociados)',
+        },
         { status: 400 }
       );
     }
@@ -112,4 +108,3 @@ export async function DELETE(
     );
   }
 }
-

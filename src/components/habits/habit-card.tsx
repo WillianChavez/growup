@@ -38,7 +38,7 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Card 
+      <Card
         className="group cursor-pointer hover:shadow-lg transition-all"
         style={{ borderLeftWidth: '4px', borderLeftColor: habit.category?.color || '#3b82f6' }}
       >
@@ -50,9 +50,7 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
                 <CardTitle className="text-lg">{habit.title}</CardTitle>
               </div>
               {habit.description && (
-                <CardDescription className="mt-1">
-                  {habit.description}
-                </CardDescription>
+                <CardDescription className="mt-1">{habit.description}</CardDescription>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -60,10 +58,10 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
                 size="icon"
                 variant="ghost"
                 className={cn(
-                  "transition-all",
+                  'transition-all',
                   isCompleted
-                    ? "text-green-600 bg-green-50 hover:bg-green-100"
-                    : "text-slate-400 hover:text-green-600"
+                    ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                    : 'text-slate-400 hover:text-green-600'
                 )}
                 onClick={handleToggle}
               >
@@ -73,7 +71,7 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
                   <Circle className="h-6 w-6" />
                 )}
               </Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100">
@@ -85,10 +83,7 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => onDelete(habit.id)}
-                    className="text-red-600"
-                  >
+                  <DropdownMenuItem onClick={() => onDelete(habit.id)} className="text-red-600">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Eliminar
                   </DropdownMenuItem>
@@ -99,7 +94,7 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
-            <Badge 
+            <Badge
               className="flex items-center gap-1"
               style={{ backgroundColor: habit.category?.color || '#3b82f6', color: 'white' }}
             >

@@ -14,7 +14,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { Book, BookFormData, BookStatus } from '@/types/book.types';
 
 interface BookDialogProps {
@@ -137,7 +143,9 @@ export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps
                 min="0"
                 max={formData.pages}
                 value={formData.currentPage || 0}
-                onChange={(e) => setFormData({ ...formData, currentPage: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, currentPage: parseInt(e.target.value) })
+                }
               />
             </div>
 
@@ -195,7 +203,12 @@ export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps
               max="5"
               step="0.5"
               value={formData.rating || ''}
-              onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseFloat(e.target.value) : undefined })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  rating: e.target.value ? parseFloat(e.target.value) : undefined,
+                })
+              }
             />
           </div>
 
@@ -225,4 +238,3 @@ export function BookDialog({ open, onOpenChange, book, onSave }: BookDialogProps
     </Dialog>
   );
 }
-

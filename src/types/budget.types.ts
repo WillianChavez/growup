@@ -34,8 +34,24 @@ export interface RecurringExpense {
 
 export type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly' | 'annual';
 export type ExpenseFrequency = 'monthly' | 'biweekly' | 'weekly' | 'annual';
-export type IncomeCategory = 'salary' | 'freelance' | 'business' | 'investment' | 'rental' | 'other';
-export type ExpenseCategory = 'utilities' | 'internet' | 'subscriptions' | 'transportation' | 'groceries' | 'health' | 'rent' | 'education' | 'entertainment' | 'other';
+export type IncomeCategory =
+  | 'salary'
+  | 'freelance'
+  | 'business'
+  | 'investment'
+  | 'rental'
+  | 'other';
+export type ExpenseCategory =
+  | 'utilities'
+  | 'internet'
+  | 'subscriptions'
+  | 'transportation'
+  | 'groceries'
+  | 'health'
+  | 'rent'
+  | 'education'
+  | 'entertainment'
+  | 'other';
 
 export interface IncomeSourceFormData {
   name: string;
@@ -80,4 +96,3 @@ export interface BudgetSummary {
     percentage: number;
   }[];
 }
-

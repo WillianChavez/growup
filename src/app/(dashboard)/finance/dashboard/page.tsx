@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, TrendingUp, TrendingDown, PiggyBank, CreditCard, Shield } from 'lucide-react';
+import { DollarSign, TrendingDown, PiggyBank, CreditCard, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import type { FinancialDashboardKPIs } from '@/types/financial.types';
@@ -13,7 +13,6 @@ export default function FinancialDashboardPage() {
 
   useEffect(() => {
     loadKPIs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadKPIs = async () => {
@@ -45,9 +44,16 @@ export default function FinancialDashboardPage() {
   }
 
   const getSolvencyStatus = (ratio: number) => {
-    if (ratio >= 6) return { label: 'Excelente', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950' };
-    if (ratio >= 3) return { label: 'Bueno', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950' };
-    if (ratio >= 1) return { label: 'Aceptable', color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-950' };
+    if (ratio >= 6)
+      return { label: 'Excelente', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950' };
+    if (ratio >= 3)
+      return { label: 'Bueno', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950' };
+    if (ratio >= 1)
+      return {
+        label: 'Aceptable',
+        color: 'text-yellow-600',
+        bg: 'bg-yellow-50 dark:bg-yellow-950',
+      };
     return { label: 'Riesgo', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950' };
   };
 
@@ -57,7 +63,7 @@ export default function FinancialDashboardPage() {
   const assetsChartData = [
     { name: 'Activos Líquidos', value: kpis.liquidAssets, color: '#10b981' },
     { name: 'Activos No Líquidos', value: kpis.illiquidAssets, color: '#3b82f6' },
-  ].filter(item => item.value > 0);
+  ].filter((item) => item.value > 0);
 
   return (
     <div className="space-y-6">
@@ -80,7 +86,9 @@ export default function FinancialDashboardPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${kpis.monthlyIncome.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-green-600">
+              ${kpis.monthlyIncome.toFixed(2)}
+            </div>
             <p className="text-xs text-slate-500 mt-1">Total de ingresos recurrentes</p>
           </CardContent>
         </Card>
@@ -92,9 +100,14 @@ export default function FinancialDashboardPage() {
             <TrendingDown className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">${kpis.monthlyExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              ${kpis.monthlyExpenses.toFixed(2)}
+            </div>
             <p className="text-xs text-slate-500 mt-1">
-              {kpis.monthlyIncome > 0 ? ((kpis.monthlyExpenses / kpis.monthlyIncome) * 100).toFixed(1) : 0}% del ingreso
+              {kpis.monthlyIncome > 0
+                ? ((kpis.monthlyExpenses / kpis.monthlyIncome) * 100).toFixed(1)
+                : 0}
+              % del ingreso
             </p>
           </CardContent>
         </Card>
@@ -108,7 +121,10 @@ export default function FinancialDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold text-red-600">${kpis.monthlyDebts.toFixed(2)}</div>
             <p className="text-xs text-slate-500 mt-1">
-              {kpis.monthlyIncome > 0 ? ((kpis.monthlyDebts / kpis.monthlyIncome) * 100).toFixed(1) : 0}% del ingreso
+              {kpis.monthlyIncome > 0
+                ? ((kpis.monthlyDebts / kpis.monthlyIncome) * 100).toFixed(1)
+                : 0}
+              % del ingreso
             </p>
           </CardContent>
         </Card>
@@ -121,7 +137,9 @@ export default function FinancialDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">${kpis.totalDebt.toFixed(2)}</div>
-            <p className="text-xs text-slate-500 mt-1">Consumo: ${kpis.consumptionDebtPayment.toFixed(2)}/mes</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Consumo: ${kpis.consumptionDebtPayment.toFixed(2)}/mes
+            </p>
           </CardContent>
         </Card>
 
@@ -225,32 +243,40 @@ export default function FinancialDashboardPage() {
 
       {/* Quick Links */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-          onClick={() => window.location.href = '/finance/budget'}>
+        <Card
+          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+          onClick={() => (window.location.href = '/finance/budget')}
+        >
           <CardContent className="pt-6 text-center">
             <div className="text-4xl mb-2">📊</div>
             <h3 className="font-semibold">Presupuesto</h3>
             <p className="text-xs text-slate-500 mt-1">Ingresos y gastos</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-          onClick={() => window.location.href = '/finance'}>
+        <Card
+          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+          onClick={() => (window.location.href = '/finance')}
+        >
           <CardContent className="pt-6 text-center">
             <div className="text-4xl mb-2">💰</div>
             <h3 className="font-semibold">Transacciones</h3>
             <p className="text-xs text-slate-500 mt-1">Registros diarios</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-          onClick={() => window.location.href = '/finance/assets'}>
+        <Card
+          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+          onClick={() => (window.location.href = '/finance/assets')}
+        >
           <CardContent className="pt-6 text-center">
             <div className="text-4xl mb-2">💰</div>
             <h3 className="font-semibold">Activos</h3>
             <p className="text-xs text-slate-500 mt-1">Gestión patrimonial</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-          onClick={() => window.location.href = '/finance/debts'}>
+        <Card
+          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+          onClick={() => (window.location.href = '/finance/debts')}
+        >
           <CardContent className="pt-6 text-center">
             <div className="text-4xl mb-2">💳</div>
             <h3 className="font-semibold">Deudas</h3>
@@ -261,4 +287,3 @@ export default function FinancialDashboardPage() {
     </div>
   );
 }
-

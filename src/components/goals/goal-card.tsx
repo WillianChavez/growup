@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Target, MoreVertical, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,8 @@ export function GoalCard({ goal, index, onEdit, onDelete }: GoalCardProps) {
   const milestones = goal.milestones || [];
   const completedMilestones = milestones.filter((m) => m.completed).length;
   const totalMilestones = milestones.length;
-  const progress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : goal.progress;
+  const progress =
+    totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : goal.progress;
 
   return (
     <motion.div
@@ -80,10 +81,7 @@ export function GoalCard({ goal, index, onEdit, onDelete }: GoalCardProps) {
                   <Pencil className="mr-2 h-4 w-4" />
                   Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onDelete(goal.id)}
-                  className="text-red-600"
-                >
+                <DropdownMenuItem onClick={() => onDelete(goal.id)} className="text-red-600">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Eliminar
                 </DropdownMenuItem>
@@ -107,9 +105,7 @@ export function GoalCard({ goal, index, onEdit, onDelete }: GoalCardProps) {
 
           {/* Category and Date */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <Badge className={categoryColors[goal.category]}>
-              {categoryLabels[goal.category]}
-            </Badge>
+            <Badge className={categoryColors[goal.category]}>{categoryLabels[goal.category]}</Badge>
             {goal.targetDate && (
               <span className="text-xs text-slate-500">
                 Meta: {format(new Date(goal.targetDate), 'dd MMM yyyy', { locale: es })}
@@ -123,22 +119,19 @@ export function GoalCard({ goal, index, onEdit, onDelete }: GoalCardProps) {
               {milestones.slice(0, 3).map((milestone, idx) => (
                 <div key={milestone.id || idx} className="flex items-center gap-2 text-sm">
                   {milestone.completed ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   ) : (
-                    <Circle className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                    <Circle className="h-4 w-4 text-slate-400 shrink-0" />
                   )}
-                  <span className={cn(
-                    "truncate",
-                    milestone.completed && "text-slate-400 line-through"
-                  )}>
+                  <span
+                    className={cn('truncate', milestone.completed && 'text-slate-400 line-through')}
+                  >
                     {milestone.title}
                   </span>
                 </div>
               ))}
               {milestones.length > 3 && (
-                <p className="text-xs text-slate-400 ml-6">
-                  +{milestones.length - 3} más
-                </p>
+                <p className="text-xs text-slate-400 ml-6">+{milestones.length - 3} más</p>
               )}
             </div>
           )}
@@ -147,4 +140,3 @@ export function GoalCard({ goal, index, onEdit, onDelete }: GoalCardProps) {
     </motion.div>
   );
 }
-

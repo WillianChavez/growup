@@ -1,6 +1,12 @@
 'use client';
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 interface BottomSheetProps {
@@ -41,4 +47,3 @@ export function BottomSheet({
     </Sheet>
   );
 }
-

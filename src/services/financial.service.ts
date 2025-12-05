@@ -1,10 +1,16 @@
 import { prisma } from '@/lib/db';
-import type { Asset, Debt, AssetFormData, DebtFormData, FinancialDashboardKPIs } from '@/types/financial.types';
+import type {
+  Asset,
+  Debt,
+  AssetFormData,
+  DebtFormData,
+  FinancialDashboardKPIs,
+} from '@/types/financial.types';
 import { BudgetService } from './budget.service';
 
 export class FinancialService {
   // ==================== ASSETS ====================
-  
+
   static async getAssets(userId: string): Promise<Asset[]> {
     const assets = await prisma.asset.findMany({
       where: { userId, isActive: true },
@@ -20,7 +26,11 @@ export class FinancialService {
     return asset as Asset;
   }
 
-  static async updateAsset(id: string, userId: string, data: Partial<AssetFormData>): Promise<Asset> {
+  static async updateAsset(
+    id: string,
+    userId: string,
+    data: Partial<AssetFormData>
+  ): Promise<Asset> {
     const asset = await prisma.asset.update({
       where: { id, userId },
       data,
@@ -36,12 +46,12 @@ export class FinancialService {
   }
 
   // ==================== DEBTS ====================
-  
+
   static async getDebts(userId: string, activeOnly: boolean = true): Promise<Debt[]> {
     const debts = await prisma.debt.findMany({
-      where: { 
+      where: {
         userId,
-        ...(activeOnly ? { status: 'active' } : {})
+        ...(activeOnly ? { status: 'active' } : {}),
       },
       orderBy: { remainingAmount: 'desc' },
     });
@@ -86,7 +96,7 @@ export class FinancialService {
   }
 
   // ==================== FINANCIAL DASHBOARD KPIs ====================
-  
+
   static async getFinancialKPIs(userId: string): Promise<FinancialDashboardKPIs> {
     const [budgetSummary, assets, activeDebts] = await Promise.all([
       BudgetService.getBudgetSummary(userId),
@@ -95,44 +105,49 @@ export class FinancialService {
     ]);
 
     // Assets
-    const liquidAssets = assets.filter(a => a.type === 'liquid').reduce((sum, a) => sum + a.value, 0);
-    const illiquidAssets = assets.filter(a => a.type === 'illiquid').reduce((sum, a) => sum + a.value, 0);
+    const liquidAssets = assets
+      .filter((a) => a.type === 'liquid')
+      .reduce((sum, a) => sum + a.value, 0);
+    const illiquidAssets = assets
+      .filter((a) => a.type === 'illiquid')
+      .reduce((sum, a) => sum + a.value, 0);
     const totalAssets = liquidAssets + illiquidAssets;
 
     // Debts
     const totalDebt = activeDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
     const monthlyDebts = activeDebts.reduce((sum, d) => sum + d.monthlyPayment, 0);
     const consumptionDebtPayment = activeDebts
-      .filter(d => d.type === 'consumption')
+      .filter((d) => d.type === 'consumption')
       .reduce((sum, d) => sum + d.monthlyPayment, 0);
 
     // Debts by type
-    const debtsByType = activeDebts.reduce((acc, debt) => {
-      const existing = acc.find(item => item.type === debt.type);
-      if (existing) {
-        existing.amount += debt.remainingAmount;
-        existing.monthlyPayment += debt.monthlyPayment;
-      } else {
-        acc.push({
-          type: this.getDebtTypeLabel(debt.type),
-          amount: debt.remainingAmount,
-          percentage: 0,
-          monthlyPayment: debt.monthlyPayment,
-        });
-      }
-      return acc;
-    }, [] as FinancialDashboardKPIs['debtsByType']);
+    const debtsByType = activeDebts.reduce(
+      (acc, debt) => {
+        const existing = acc.find((item) => item.type === debt.type);
+        if (existing) {
+          existing.amount += debt.remainingAmount;
+          existing.monthlyPayment += debt.monthlyPayment;
+        } else {
+          acc.push({
+            type: this.getDebtTypeLabel(debt.type),
+            amount: debt.remainingAmount,
+            percentage: 0,
+            monthlyPayment: debt.monthlyPayment,
+          });
+        }
+        return acc;
+      },
+      [] as FinancialDashboardKPIs['debtsByType']
+    );
 
     // Calculate percentages
-    debtsByType.forEach(item => {
+    debtsByType.forEach((item) => {
       item.percentage = totalDebt > 0 ? (item.amount / totalDebt) * 100 : 0;
     });
 
     // Solvency ratio: cuántos meses puedes cubrir gastos con activos líquidos
     const totalMonthlyObligations = budgetSummary.totalMonthlyExpenses + monthlyDebts;
-    const solvencyRatio = totalMonthlyObligations > 0 
-      ? liquidAssets / totalMonthlyObligations 
-      : 0;
+    const solvencyRatio = totalMonthlyObligations > 0 ? liquidAssets / totalMonthlyObligations : 0;
 
     return {
       monthlyIncome: budgetSummary.totalMonthlyIncome,
@@ -161,4 +176,3 @@ export class FinancialService {
     return labels[type] || type;
   }
 }
-

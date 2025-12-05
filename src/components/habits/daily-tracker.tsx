@@ -20,16 +20,16 @@ export function DailyTracker() {
 
   useEffect(() => {
     let cancelled = false;
-    
+
     async function loadData() {
       const view = await fetchDailyView(currentDate);
       if (!cancelled) {
         setDailyView(view);
       }
     }
-    
+
     loadData();
-    
+
     return () => {
       cancelled = true;
     };
@@ -85,11 +85,7 @@ export function DailyTracker() {
                 </div>
 
                 {/* Progress circle */}
-                <CircularProgress
-                  percentage={item.weeklyPercentage}
-                  size="md"
-                  showLabel={true}
-                />
+                <CircularProgress percentage={item.weeklyPercentage} size="md" showLabel={true} />
               </motion.div>
             ))}
           </div>
@@ -106,7 +102,12 @@ export function DailyTracker() {
                 Hábitos de Hoy
               </CardTitle>
               {!isToday(currentDate) && (
-                <Button size="sm" variant="outline" onClick={goToToday} className="w-full sm:w-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={goToToday}
+                  className="w-full sm:w-auto"
+                >
                   <Calendar className="mr-2 h-4 w-4" />
                   Hoy
                 </Button>
@@ -119,9 +120,7 @@ export function DailyTracker() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <div className="min-w-[200px] text-center">
-                <p className="font-semibold">
-                  {format(currentDate, 'EEEE', { locale: es })}
-                </p>
+                <p className="font-semibold">{format(currentDate, 'EEEE', { locale: es })}</p>
                 <p className="text-sm text-slate-500">
                   {format(currentDate, 'dd MMMM yyyy', { locale: es })}
                 </p>
@@ -158,20 +157,20 @@ export function DailyTracker() {
                   >
                     <div
                       className={cn(
-                        "flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer",
+                        'flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer',
                         isCompleted
-                          ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                          ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                       )}
                       onClick={() => handleToggle(item.habit.id, !isCompleted)}
                     >
                       {/* Checkbox */}
                       <div
                         className={cn(
-                          "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all shrink-0",
+                          'flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all shrink-0',
                           isCompleted
-                            ? "bg-green-500 border-green-500"
-                            : "border-slate-300 dark:border-slate-700"
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-slate-300 dark:border-slate-700'
                         )}
                       >
                         {isCompleted && <Check className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
@@ -181,10 +180,12 @@ export function DailyTracker() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-lg sm:text-xl shrink-0">{item.habit.emoji}</span>
-                          <h3 className={cn(
-                            "font-medium text-sm sm:text-base truncate",
-                            isCompleted && "line-through text-slate-500"
-                          )}>
+                          <h3
+                            className={cn(
+                              'font-medium text-sm sm:text-base truncate',
+                              isCompleted && 'line-through text-slate-500'
+                            )}
+                          >
                             {item.habit.title}
                           </h3>
                         </div>
@@ -199,7 +200,7 @@ export function DailyTracker() {
                       <Badge
                         style={{
                           backgroundColor: item.habit.category?.color || '#3b82f6',
-                          color: 'white'
+                          color: 'white',
                         }}
                         className="items-center gap-1 text-[10px] sm:text-xs shrink-0 hidden sm:flex"
                       >
@@ -207,7 +208,7 @@ export function DailyTracker() {
                         <span className="hidden sm:inline">{item.habit.category?.name}</span>
                       </Badge>
                       {/* Badge solo emoji en móvil */}
-                      <div 
+                      <div
                         className="shrink-0 sm:hidden"
                         style={{ color: item.habit.category?.color || '#3b82f6' }}
                       >
@@ -224,4 +225,3 @@ export function DailyTracker() {
     </div>
   );
 }
-

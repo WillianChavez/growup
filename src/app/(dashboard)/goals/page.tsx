@@ -28,10 +28,10 @@ export default function GoalsPage() {
   const isMobile = useIsMobile();
   const { fetchGoals, createGoal, updateGoal, deleteGoal, isLoading } = useGoals();
 
-  const loadGoals = async () => {
+  const loadGoals = useCallback(async () => {
     const data = await fetchGoals();
     setGoals(data);
-  };
+  }, [fetchGoals]);
 
   useEffect(() => {
     loadGoals();
@@ -43,14 +43,17 @@ export default function GoalsPage() {
     setDialogOpen(true);
   }, []);
 
-  const handleSaveGoal = useCallback(async (data: GoalFormData) => {
-    if (editingGoal) {
-      await updateGoal(editingGoal.id, data);
-    } else {
-      await createGoal(data);
-    }
-    await loadGoals();
-  }, [editingGoal, updateGoal, createGoal]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSaveGoal = useCallback(
+    async (data: GoalFormData) => {
+      if (editingGoal) {
+        await updateGoal(editingGoal.id, data);
+      } else {
+        await createGoal(data);
+      }
+      await loadGoals();
+    },
+    [editingGoal, updateGoal, createGoal, loadGoals]
+  );
 
   const handleDeleteGoal = useCallback((goalId: string) => {
     setGoalToDelete(goalId);
@@ -63,10 +66,10 @@ export default function GoalsPage() {
       await loadGoals();
       setGoalToDelete(null);
     }
-  }, [goalToDelete, deleteGoal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [goalToDelete, deleteGoal, loadGoals]);
 
   const handleToggleGoal = useCallback((goalId: string) => {
-    setOpenGoals(prev => {
+    setOpenGoals((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(goalId)) {
         newSet.delete(goalId);
@@ -77,64 +80,69 @@ export default function GoalsPage() {
     });
   }, []);
 
-  const handleMilestoneToggle = useCallback(async (goalId: string, milestones: Milestone[]) => {
-    // Actualizar el estado local inmediatamente (optimistic update)
-    // Preservar la referencia del objeto goal si solo cambian las milestones
-    setGoals(prevGoals => {
-      const newGoals = prevGoals.map(g => {
-        if (g.id !== goalId) return g; // Mantener referencia para otros goals
-        
-        const newProgress = milestones.length > 0 
-          ? Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100) 
-          : 0;
-        
-        // Solo crear nuevo objeto si realmente cambió algo
-        if (
-          JSON.stringify(g.milestones || []) === JSON.stringify(milestones) &&
-          g.progress === newProgress
-        ) {
-          return g; // Mantener referencia si no cambió nada
-        }
-        
-        return { 
-          ...g, 
-          milestones, 
-          progress: newProgress
-        };
+  const handleMilestoneToggle = useCallback(
+    async (goalId: string, milestones: Milestone[]) => {
+      // Actualizar el estado local inmediatamente (optimistic update)
+      // Preservar la referencia del objeto goal si solo cambian las milestones
+      setGoals((prevGoals) => {
+        const newGoals = prevGoals.map((g) => {
+          if (g.id !== goalId) return g; // Mantener referencia para otros goals
+
+          const newProgress =
+            milestones.length > 0
+              ? Math.round((milestones.filter((m) => m.completed).length / milestones.length) * 100)
+              : 0;
+
+          // Solo crear nuevo objeto si realmente cambió algo
+          if (
+            JSON.stringify(g.milestones || []) === JSON.stringify(milestones) &&
+            g.progress === newProgress
+          ) {
+            return g; // Mantener referencia si no cambió nada
+          }
+
+          return {
+            ...g,
+            milestones,
+            progress: newProgress,
+          };
+        });
+
+        return newGoals;
       });
-      
-      return newGoals;
-    });
 
-    // Actualizar en el servidor en segundo plano
-    try {
-      await updateGoal(goalId, { milestones });
-    } catch (error) {
-      console.error('Error updating milestones:', error);
-      // Recargar en caso de error
-      await loadGoals();
-    }
-  }, [updateGoal]); // eslint-disable-line react-hooks/exhaustive-deps
+      // Actualizar en el servidor en segundo plano
+      try {
+        await updateGoal(goalId, { milestones });
+      } catch (error) {
+        console.error('Error updating milestones:', error);
+        // Recargar en caso de error
+        await loadGoals();
+      }
+    },
+    [updateGoal, loadGoals]
+  );
 
-  const handleCompleteGoal = useCallback(async (goalId: string) => {
-    // Actualizar el estado local inmediatamente (optimistic update)
-    setGoals(prevGoals => 
-      prevGoals.map(g => 
-        g.id === goalId 
-          ? { ...g, status: 'completed' as const, completedAt: new Date() }
-          : g
-      )
-    );
+  const handleCompleteGoal = useCallback(
+    async (goalId: string) => {
+      // Actualizar el estado local inmediatamente (optimistic update)
+      setGoals((prevGoals) =>
+        prevGoals.map((g) =>
+          g.id === goalId ? { ...g, status: 'completed' as const, completedAt: new Date() } : g
+        )
+      );
 
-    // Actualizar en el servidor
-    try {
-      await updateGoal(goalId, { status: 'completed' });
-    } catch (error) {
-      console.error('Error completing goal:', error);
-      // Recargar en caso de error
-      await loadGoals();
-    }
-  }, [updateGoal]); // eslint-disable-line react-hooks/exhaustive-deps
+      // Actualizar en el servidor
+      try {
+        await updateGoal(goalId, { status: 'completed' });
+      } catch (error) {
+        console.error('Error completing goal:', error);
+        // Recargar en caso de error
+        await loadGoals();
+      }
+    },
+    [updateGoal, loadGoals]
+  );
 
   // Calculate stats
   const activeGoals = goals.filter((g) => g.status !== 'completed');
@@ -160,7 +168,7 @@ export default function GoalsPage() {
             Define y alcanza tus objetivos
           </p>
         </div>
-        <Button 
+        <Button
           className="bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 w-full sm:w-auto text-sm hidden sm:flex"
           onClick={() => handleOpenDialog()}
         >
@@ -191,7 +199,9 @@ export default function GoalsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">{completedGoals.length}</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
+              {completedGoals.length}
+            </div>
           </CardContent>
         </Card>
 
@@ -240,9 +250,7 @@ export default function GoalsPage() {
             <TabsContent value={filterTab} className="mt-6">
               <div className="space-y-3">
                 {isLoading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <GoalCardSkeleton key={i} />
-                  ))
+                  Array.from({ length: 4 }).map((_, i) => <GoalCardSkeleton key={i} />)
                 ) : filteredGoals.length === 0 ? (
                   <Card className="col-span-full border-dashed">
                     <CardContent className="flex flex-col items-center justify-center py-16 px-4">
@@ -251,15 +259,17 @@ export default function GoalsPage() {
                         <Target className="relative h-20 w-20 text-purple-500 dark:text-purple-400" />
                       </div>
                       <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                        {filterTab === 'active' ? 'No hay metas activas' : 'No hay metas completadas'}
+                        {filterTab === 'active'
+                          ? 'No hay metas activas'
+                          : 'No hay metas completadas'}
                       </h3>
                       <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
-                        {filterTab === 'active' 
+                        {filterTab === 'active'
                           ? 'Comienza tu viaje hacia el éxito definiendo tu primera meta. Cada gran logro comienza con un primer paso.'
                           : '¡Excelente trabajo! Las metas completadas aparecerán aquí. Sigue así.'}
                       </p>
                       {filterTab === 'active' && (
-                        <Button 
+                        <Button
                           onClick={() => handleOpenDialog()}
                           className="bg-linear-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
                         >
@@ -290,19 +300,14 @@ export default function GoalsPage() {
 
         {/* Calendar View */}
         <TabsContent value="calendar" className="mt-6">
-          <GoalsCalendar 
-            goals={goals} 
-            onGoalClick={(goal) => handleOpenDialog(goal)}
-          />
+          <GoalsCalendar goals={goals} onGoalClick={(goal) => handleOpenDialog(goal)} />
         </TabsContent>
 
         {/* Timeline View */}
         <TabsContent value="timeline" className="mt-6">
           <div className="space-y-6">
             {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <GoalCardSkeleton key={i} />
-              ))
+              Array.from({ length: 3 }).map((_, i) => <GoalCardSkeleton key={i} />)
             ) : filteredGoals.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-16 px-4">
@@ -314,14 +319,13 @@ export default function GoalsPage() {
                     No hay historial disponible
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
-                    El timeline mostrará el progreso histórico de tus metas cuando comiences a completar hitos.
+                    El timeline mostrará el progreso histórico de tus metas cuando comiences a
+                    completar hitos.
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              filteredGoals.map((goal) => (
-                <GoalTimeline key={goal.id} goal={goal} />
-              ))
+              filteredGoals.map((goal) => <GoalTimeline key={goal.id} goal={goal} />)
             )}
           </div>
         </TabsContent>
@@ -350,12 +354,7 @@ export default function GoalsPage() {
       />
 
       {/* Floating Action Button para móvil */}
-      {isMobile && (
-        <FloatingActionButton
-          onClick={() => handleOpenDialog()}
-          label="Nueva Meta"
-        />
-      )}
+      {isMobile && <FloatingActionButton onClick={() => handleOpenDialog()} label="Nueva Meta" />}
     </div>
   );
 }

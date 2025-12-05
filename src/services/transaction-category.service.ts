@@ -1,8 +1,12 @@
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import type { TransactionCategory } from '@/types/finance.types';
 
 export class TransactionCategoryService {
-  static async create(userId: string, data: Omit<TransactionCategory, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<TransactionCategory> {
+  static async create(
+    userId: string,
+    data: Omit<TransactionCategory, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  ): Promise<TransactionCategory> {
     return prisma.transactionCategory.create({
       data: {
         ...data,
@@ -18,13 +22,10 @@ export class TransactionCategoryService {
   }
 
   static async findAllByUser(userId: string, type?: string): Promise<TransactionCategory[]> {
-    const where: any = { userId };
-    
+    const where: Prisma.TransactionCategoryWhereInput = { userId };
+
     if (type && type !== 'both') {
-      where.OR = [
-        { type },
-        { type: 'both' },
-      ];
+      where.OR = [{ type }, { type: 'both' }];
     }
 
     return prisma.transactionCategory.findMany({
@@ -65,7 +66,7 @@ export class TransactionCategoryService {
         where: { id, userId },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -97,4 +98,3 @@ export class TransactionCategoryService {
     });
   }
 }
-

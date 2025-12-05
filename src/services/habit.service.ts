@@ -1,9 +1,27 @@
 import { prisma } from '@/lib/db';
-import type { Habit, HabitEntry, HabitStats, DailyHabitView, MonthlyHabitData } from '@/types/habit.types';
-import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { Prisma } from '@prisma/client';
+import type {
+  Habit,
+  HabitEntry,
+  HabitStats,
+  DailyHabitView,
+  MonthlyHabitData,
+} from '@/types/habit.types';
+import {
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+} from 'date-fns';
 
 export class HabitService {
-  static async create(userId: string, data: Omit<Habit, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'isArchived' | 'category'>): Promise<Habit> {
+  static async create(
+    userId: string,
+    data: Omit<Habit, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'isArchived' | 'category'>
+  ): Promise<Habit> {
     return prisma.habit.create({
       data: {
         title: data.title,
@@ -29,8 +47,8 @@ export class HabitService {
   }
 
   static async findAllByUser(userId: string, includeArchived: boolean = false): Promise<Habit[]> {
-    const where: any = { userId };
-    
+    const where: Prisma.HabitWhereInput = { userId };
+
     if (!includeArchived) {
       where.isArchived = false;
     }
@@ -55,13 +73,14 @@ export class HabitService {
 
     if (!habit) return null;
 
-    const updateData: any = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.emoji !== undefined) updateData.emoji = data.emoji;
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
-    if (data.isActive !== undefined) updateData.isActive = data.isActive;
-    if (data.isArchived !== undefined) updateData.isArchived = data.isArchived;
+    const updateData: Prisma.HabitUpdateInput = {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.emoji !== undefined && { emoji: data.emoji }),
+      ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.isArchived !== undefined && { isArchived: data.isArchived }),
+    };
 
     return prisma.habit.update({
       where: { id },
@@ -78,7 +97,7 @@ export class HabitService {
         where: { id, userId },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -132,7 +151,7 @@ export class HabitService {
     startDate?: Date,
     endDate?: Date
   ): Promise<HabitEntry[]> {
-    const where: any = { habitId, userId };
+    const where: Prisma.HabitEntryWhereInput = { habitId, userId };
 
     if (startDate || endDate) {
       where.date = {};
@@ -153,7 +172,7 @@ export class HabitService {
     normalizedDate.setUTCHours(0, 0, 0, 0);
 
     const habits = await this.findAllByUser(userId, false);
-    
+
     // Buscar entradas exactamente para esta fecha normalizada
     const entries = await prisma.habitEntry.findMany({
       where: {
@@ -165,8 +184,9 @@ export class HabitService {
     const entryMap = new Map(entries.map((e) => [e.habitId, e]));
 
     // Calcular estadísticas semanales para cada hábito
-    const weekStart = startOfWeek(normalizedDate, { weekStartsOn: 1 }); // Lunes
-    const weekEnd = endOfWeek(normalizedDate, { weekStartsOn: 1 }); // Domingo
+    const weekStart = startOfWeek(normalizedDate, { weekStartsOn: 1 });
+    // weekEnd se usa para calcular el rango de la semana
+    endOfWeek(normalizedDate, { weekStartsOn: 1 });
 
     // Obtener todas las entradas de la semana
     const weeklyEntries = await prisma.habitEntry.findMany({
@@ -189,9 +209,8 @@ export class HabitService {
     });
 
     // Calcular cuántos días han pasado de la semana (incluyendo hoy)
-    const daysSinceWeekStart = Math.floor(
-      (normalizedDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
+    const daysSinceWeekStart =
+      Math.floor((normalizedDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     return {
       date: normalizedDate,
@@ -233,7 +252,7 @@ export class HabitService {
 
     // Agrupar por día usando fecha normalizada
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    
+
     return days.map((day) => {
       // Normalizar el día para comparación
       const normalizedDay = new Date(day);
@@ -276,13 +295,9 @@ export class HabitService {
     const monthStart = startOfMonth(now);
 
     const completedEntries = allEntries.filter((e) => e.completed);
-    
-    const thisWeekEntries = allEntries.filter(
-      (e) => e.date >= weekStart && e.date <= now
-    );
-    const thisMonthEntries = allEntries.filter(
-      (e) => e.date >= monthStart && e.date <= now
-    );
+
+    const thisWeekEntries = allEntries.filter((e) => e.date >= weekStart && e.date <= now);
+    const thisMonthEntries = allEntries.filter((e) => e.date >= monthStart && e.date <= now);
 
     // Calcular rachas
     let currentStreak = 0;
@@ -290,7 +305,7 @@ export class HabitService {
     let tempStreak = 0;
 
     const sortedEntries = [...allEntries].sort((a, b) => b.date.getTime() - a.date.getTime());
-    
+
     for (let i = 0; i < sortedEntries.length; i++) {
       if (sortedEntries[i].completed) {
         tempStreak++;
@@ -304,7 +319,8 @@ export class HabitService {
     return {
       totalEntries: allEntries.length,
       completedEntries: completedEntries.length,
-      completionRate: allEntries.length > 0 ? (completedEntries.length / allEntries.length) * 100 : 0,
+      completionRate:
+        allEntries.length > 0 ? (completedEntries.length / allEntries.length) * 100 : 0,
       currentStreak,
       longestStreak,
       thisWeek: {

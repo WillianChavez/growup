@@ -21,10 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Validar estructura del archivo
     if (!importData.data || !importData.version) {
-      return NextResponse.json(
-        { error: 'Formato de archivo inválido' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Formato de archivo inválido' }, { status: 400 });
     }
 
     const { data } = importData;
@@ -158,8 +155,10 @@ export async function POST(request: NextRequest) {
       // Importar transacciones
       if (data.transactions?.length) {
         for (const transaction of data.transactions) {
-          const newCategoryId = transaction.categoryId ? transactionCategoryIdMap.get(transaction.categoryId) : null;
-          
+          const newCategoryId = transaction.categoryId
+            ? transactionCategoryIdMap.get(transaction.categoryId)
+            : null;
+
           // Si no hay categoría mapeada, crear una categoría "Sin categoría" si no existe
           let finalCategoryId = newCategoryId;
           if (!finalCategoryId) {
@@ -169,7 +168,7 @@ export async function POST(request: NextRequest) {
                 name: 'Sin categoría',
               },
             });
-            
+
             if (defaultCategory) {
               finalCategoryId = defaultCategory.id;
             } else {
@@ -312,10 +311,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error importing data:', error);
-    return NextResponse.json(
-      { error: 'Error al importar datos' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error al importar datos' }, { status: 500 });
   }
 }
-

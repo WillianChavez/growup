@@ -1,9 +1,13 @@
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import type { Book, BookQuote, ReadingStats } from '@/types/book.types';
 import { getYearRange, getMonthRange } from '@/lib/date-utils';
 
 export class BookService {
-  static async create(userId: string, data: Omit<Book, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<Book> {
+  static async create(
+    userId: string,
+    data: Omit<Book, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  ): Promise<Book> {
     return prisma.book.create({
       data: {
         ...data,
@@ -27,8 +31,8 @@ export class BookService {
   }
 
   static async findAllByUser(userId: string, status?: string): Promise<Book[]> {
-    const where: any = { userId };
-    
+    const where: Prisma.BookWhereInput = { userId };
+
     if (status) {
       where.status = status;
     }
@@ -44,7 +48,11 @@ export class BookService {
     })) as Book[];
   }
 
-  static async update(id: string, userId: string, data: Partial<Omit<Book, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<Book | null> {
+  static async update(
+    id: string,
+    userId: string,
+    data: Partial<Omit<Book, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
+  ): Promise<Book | null> {
     const book = await prisma.book.findFirst({
       where: { id, userId },
     });
@@ -71,12 +79,16 @@ export class BookService {
         where: { id, userId },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
 
-  static async updateProgress(id: string, userId: string, currentPage: number): Promise<Book | null> {
+  static async updateProgress(
+    id: string,
+    userId: string,
+    currentPage: number
+  ): Promise<Book | null> {
     const book = await prisma.book.findFirst({
       where: { id, userId },
     });
@@ -101,7 +113,10 @@ export class BookService {
   }
 
   // Quotes
-  static async createQuote(userId: string, data: Omit<BookQuote, 'id' | 'userId' | 'createdAt'>): Promise<BookQuote> {
+  static async createQuote(
+    userId: string,
+    data: Omit<BookQuote, 'id' | 'userId' | 'createdAt'>
+  ): Promise<BookQuote> {
     return prisma.bookQuote.create({
       data: {
         ...data,
@@ -123,7 +138,7 @@ export class BookService {
         where: { id, userId },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -151,9 +166,11 @@ export class BookService {
     const pagesRead = completedBooks.reduce((sum, book) => sum + book.pages, 0);
 
     const booksWithRating = completedBooks.filter((b) => b.rating !== null);
-    const averageRating = booksWithRating.length > 0
-      ? booksWithRating.reduce((sum, book) => sum + (book.rating || 0), 0) / booksWithRating.length
-      : 0;
+    const averageRating =
+      booksWithRating.length > 0
+        ? booksWithRating.reduce((sum, book) => sum + (book.rating || 0), 0) /
+          booksWithRating.length
+        : 0;
 
     // Genre statistics
     const genreCounts: Record<string, number> = {};
@@ -184,4 +201,3 @@ export class BookService {
     };
   }
 }
-

@@ -6,17 +6,16 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useMonthlyHabits } from '@/hooks/useMonthlyHabits';
-import { useDailyHabits } from '@/hooks/useDailyHabits';
 import type { MonthlyHabitData } from '@/types/habit.types';
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  eachDayOfInterval, 
-  getDay, 
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  getDay,
   isSameMonth,
   isToday,
-  isFuture
+  isFuture,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -26,19 +25,17 @@ const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 export function MonthlyCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [monthlyData, setMonthlyData] = useState<MonthlyHabitData[]>([]);
-  const { fetchMonthlyData, isLoading } = useMonthlyHabits();
-  const { toggleHabit } = useDailyHabits();
+  const { fetchMonthlyData } = useMonthlyHabits();
 
   useEffect(() => {
-    loadMonthlyData();
-  }, [currentMonth]);
-
-  const loadMonthlyData = async () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth() + 1;
-    const data = await fetchMonthlyData(year, month);
-    setMonthlyData(data);
-  };
+    const loadMonthlyData = async () => {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
+      const data = await fetchMonthlyData(year, month);
+      setMonthlyData(data);
+    };
+    void loadMonthlyData();
+  }, [currentMonth, fetchMonthlyData]);
 
   const goToPrevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
@@ -78,23 +75,33 @@ export function MonthlyCalendar() {
       <CardHeader>
         <div className="flex flex-col gap-4">
           {/* Title and Today Button */}
-        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <CardTitle className="text-lg sm:text-xl">Calendario de Hábitos</CardTitle>
             <Button size="sm" variant="outline" onClick={goToToday} className="shrink-0">
               <span className="hidden xs:inline">Hoy</span>
               <span className="xs:hidden">📅</span>
             </Button>
           </div>
-          
+
           {/* Month Navigation */}
           <div className="flex items-center justify-center gap-2">
-            <Button size="icon" variant="outline" onClick={goToPrevMonth} className="shrink-0 h-9 w-9">
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={goToPrevMonth}
+              className="shrink-0 h-9 w-9"
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="min-w-0 flex-1 max-w-[250px] text-center font-semibold text-sm sm:text-base">
               {format(currentMonth, 'MMMM yyyy', { locale: es })}
             </div>
-            <Button size="icon" variant="outline" onClick={goToNextMonth} className="shrink-0 h-9 w-9">
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={goToNextMonth}
+              className="shrink-0 h-9 w-9"
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -105,7 +112,10 @@ export function MonthlyCalendar() {
         {/* Weekday Headers */}
         <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
           {WEEKDAYS.map((day) => (
-            <div key={day} className="text-center text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 py-1 sm:py-2">
+            <div
+              key={day}
+              className="text-center text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 py-1 sm:py-2"
+            >
               {day}
             </div>
           ))}
@@ -138,26 +148,28 @@ export function MonthlyCalendar() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.01 }}
                 className={cn(
-                  "aspect-square relative rounded-lg transition-all",
-                  isCurrentMonth ? "opacity-100" : "opacity-30",
-                  !isFutureDay && "cursor-pointer hover:ring-2 hover:ring-blue-400",
-                  isFutureDay && "opacity-30 cursor-not-allowed"
+                  'aspect-square relative rounded-lg transition-all',
+                  isCurrentMonth ? 'opacity-100' : 'opacity-30',
+                  !isFutureDay && 'cursor-pointer hover:ring-2 hover:ring-blue-400',
+                  isFutureDay && 'opacity-30 cursor-not-allowed'
                 )}
               >
                 <div
                   className={cn(
-                    "w-full h-full rounded-lg p-1.5 sm:p-2 flex flex-col",
+                    'w-full h-full rounded-lg p-1.5 sm:p-2 flex flex-col',
                     colorClass,
-                    isDayToday && "ring-2 ring-blue-500"
+                    isDayToday && 'ring-2 ring-blue-500'
                   )}
                 >
                   {/* Day Number */}
-                  <div className={cn(
-                    "text-xs sm:text-sm font-medium",
-                    completedCount === totalCount && totalCount > 0 
-                      ? "text-white" 
-                      : "text-slate-900 dark:text-white"
-                  )}>
+                  <div
+                    className={cn(
+                      'text-xs sm:text-sm font-medium',
+                      completedCount === totalCount && totalCount > 0
+                        ? 'text-white'
+                        : 'text-slate-900 dark:text-white'
+                    )}
+                  >
                     {format(day, 'd')}
                   </div>
 
@@ -209,4 +221,3 @@ export function MonthlyCalendar() {
     </Card>
   );
 }
-

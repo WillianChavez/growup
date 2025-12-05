@@ -37,10 +37,12 @@ export function TransactionCard({ transaction, index, onEdit, onDelete }: Transa
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
               {/* Icon */}
-              <div className={cn(
-                "rounded-full p-2",
-                isIncome ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-              )}>
+              <div
+                className={cn(
+                  'rounded-full p-2',
+                  isIncome ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                )}
+              >
                 {isIncome ? (
                   <ArrowUpCircle className="h-5 w-5" />
                 ) : (
@@ -67,10 +69,9 @@ export function TransactionCard({ transaction, index, onEdit, onDelete }: Transa
 
             {/* Amount and Actions */}
             <div className="flex items-center gap-3">
-              <span className={cn(
-                "font-bold text-lg",
-                isIncome ? "text-green-600" : "text-red-600"
-              )}>
+              <span
+                className={cn('font-bold text-lg', isIncome ? 'text-green-600' : 'text-red-600')}
+              >
                 {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
               </span>
 
@@ -85,7 +86,7 @@ export function TransactionCard({ transaction, index, onEdit, onDelete }: Transa
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => onDelete(transaction.id)}
                     className="text-red-600"
                   >

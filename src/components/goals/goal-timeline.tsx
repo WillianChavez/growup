@@ -1,6 +1,6 @@
 'use client';
 
-import { format, isSameDay, parseISO } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CheckCircle2, Circle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,12 +91,13 @@ export function GoalTimeline({ goal }: GoalTimelineProps) {
             {events.map((event, index) => {
               const isToday = isSameDay(event.date, new Date());
               const isMilestone = event.type === 'milestone';
-              const isGoalCompleted = event.type === 'goal' && event.description === 'Meta completada';
+              const isGoalCompleted =
+                event.type === 'goal' && event.description === 'Meta completada';
 
               return (
                 <div key={index} className="relative flex gap-4">
                   {/* Punto del timeline */}
-                  <div className="relative z-10 flex-shrink-0">
+                  <div className="relative z-10 shrink-0">
                     <div
                       className={cn(
                         'flex h-8 w-8 items-center justify-center rounded-full border-2 bg-white dark:bg-slate-950',
@@ -149,4 +150,3 @@ export function GoalTimeline({ goal }: GoalTimelineProps) {
     </Card>
   );
 }
-

@@ -66,7 +66,7 @@ export class UserService {
 
       // 2. Crear categorías de hábitos por defecto
       await tx.habitCategory.createMany({
-        data: DEFAULT_HABIT_CATEGORIES.map(cat => ({
+        data: DEFAULT_HABIT_CATEGORIES.map((cat) => ({
           ...cat,
           userId: newUser.id,
         })),
@@ -74,7 +74,7 @@ export class UserService {
 
       // 3. Crear categorías de transacciones por defecto
       await tx.transactionCategory.createMany({
-        data: DEFAULT_TRANSACTION_CATEGORIES.map(cat => ({
+        data: DEFAULT_TRANSACTION_CATEGORIES.map((cat) => ({
           ...cat,
           userId: newUser.id,
         })),
@@ -83,12 +83,17 @@ export class UserService {
       return newUser;
     });
 
-    console.log(`✅ Usuario creado con ${DEFAULT_HABIT_CATEGORIES.length} categorías de hábitos y ${DEFAULT_TRANSACTION_CATEGORIES.length} categorías de transacciones`);
+    console.log(
+      `✅ Usuario creado con ${DEFAULT_HABIT_CATEGORIES.length} categorías de hábitos y ${DEFAULT_TRANSACTION_CATEGORIES.length} categorías de transacciones`
+    );
 
     return user;
   }
 
-  static async update(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | null> {
+  static async update(
+    id: string,
+    updates: Partial<Omit<User, 'id' | 'createdAt'>>
+  ): Promise<User | null> {
     try {
       return await prisma.user.update({
         where: { id },

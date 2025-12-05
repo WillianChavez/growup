@@ -40,7 +40,10 @@ export function useTransactions() {
     }
   };
 
-  const updateTransaction = async (id: string, data: Partial<TransactionFormData>): Promise<Transaction | null> => {
+  const updateTransaction = async (
+    id: string,
+    data: Partial<TransactionFormData>
+  ): Promise<Transaction | null> => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/transactions/${id}`, {
@@ -82,4 +85,3 @@ export function useTransactions() {
     isLoading,
   };
 }
-

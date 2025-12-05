@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  CheckCircle2,
-  BookOpen,
-  Wallet,
-  Target,
-  TrendingUp,
-} from 'lucide-react';
+import { CheckCircle2, Wallet, Target, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -54,8 +48,12 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [dailyView, setDailyView] = useState<DailyHabitView | null>(null);
-  const [weeklyStats, setWeeklyStats] = useState<Array<{date: string; completed: number; total: number}>>([]);
-  const [categoriesWeekly, setCategoriesWeekly] = useState<Array<{category: string; color: string; [key: string]: string | number}>>([]);
+  const [weeklyStats, setWeeklyStats] = useState<
+    Array<{ date: string; completed: number; total: number }>
+  >([]);
+  const [categoriesWeekly, setCategoriesWeekly] = useState<
+    Array<{ category: string; color: string; [key: string]: string | number }>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const { fetchHabits } = useHabits();
@@ -73,7 +71,7 @@ export default function DashboardPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Cargar datos básicos
       const [habitsData, transactionsData, goalsData, booksData, dailyData] = await Promise.all([
         fetchHabits(false),
@@ -115,25 +113,29 @@ export default function DashboardPage() {
   };
 
   // Calcular estadísticas
-  const totalActiveHabits = habits.filter(h => h.isActive).length;
+  const totalActiveHabits = habits.filter((h) => h.isActive).length;
   const completedToday = dailyView?.habits.filter((h) => h.entry?.completed).length || 0;
 
   // Calcular estadísticas financieras del mes actual
   const monthlyIncome = transactions
-    .filter(t => {
+    .filter((t) => {
       const transactionDate = new Date(t.date);
-      return t.type === 'income' &&
+      return (
+        t.type === 'income' &&
         transactionDate.getMonth() === today.getMonth() &&
-        transactionDate.getFullYear() === today.getFullYear();
+        transactionDate.getFullYear() === today.getFullYear()
+      );
     })
     .reduce((sum, t) => sum + t.amount, 0);
 
   const monthlyExpenses = transactions
-    .filter(t => {
+    .filter((t) => {
       const transactionDate = new Date(t.date);
-      return t.type === 'expense' &&
+      return (
+        t.type === 'expense' &&
         transactionDate.getMonth() === today.getMonth() &&
-        transactionDate.getFullYear() === today.getFullYear();
+        transactionDate.getFullYear() === today.getFullYear()
+      );
     })
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -141,12 +143,9 @@ export default function DashboardPage() {
   const savingsRate = monthlyIncome > 0 ? (monthlySavings / monthlyIncome) * 100 : 0;
 
   // Balance total (todos los tiempos)
-  const totalBalance = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0) -
-    transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalBalance =
+    transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
+    transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
 
   const stats = {
     habitsToday: {
@@ -154,9 +153,9 @@ export default function DashboardPage() {
       total: totalActiveHabits,
     },
     reading: {
-      booksReading: books.filter(b => b.status === 'reading').length,
+      booksReading: books.filter((b) => b.status === 'reading').length,
       pagesThisWeek: books
-        .filter(b => b.status === 'reading')
+        .filter((b) => b.status === 'reading')
         .reduce((sum, book) => sum + book.currentPage, 0),
     },
     finance: {
@@ -167,23 +166,25 @@ export default function DashboardPage() {
       savingsRate,
     },
     goals: {
-      active: goals.filter(g => g.status !== 'completed').length,
-      completedThisMonth: goals.filter(g => {
+      active: goals.filter((g) => g.status !== 'completed').length,
+      completedThisMonth: goals.filter((g) => {
         if (g.status !== 'completed' || !g.completedAt) return false;
         const completedDate = new Date(g.completedAt);
-        return completedDate.getMonth() === today.getMonth() &&
-          completedDate.getFullYear() === today.getFullYear();
+        return (
+          completedDate.getMonth() === today.getMonth() &&
+          completedDate.getFullYear() === today.getFullYear()
+        );
       }).length,
     },
   };
 
   const motivationalQuote = {
     quote: 'El éxito es la suma de pequeños esfuerzos repetidos día tras día.',
-    author: 'Robert Collier'
+    author: 'Robert Collier',
   };
 
   // Datos para gráfico de hábitos (últimos 7 días) - datos reales de la API
-  const habitStatsData = weeklyStats.map(stat => ({
+  const habitStatsData = weeklyStats.map((stat) => ({
     date: new Date(stat.date),
     completed: stat.completed,
     total: stat.total,
@@ -191,9 +192,9 @@ export default function DashboardPage() {
 
   // Datos para gráfico de progreso de metas
   const goalProgressData = goals
-    .filter(g => g.status !== 'completed')
+    .filter((g) => g.status !== 'completed')
     .slice(0, 5)
-    .map(goal => ({
+    .map((goal) => ({
       title: goal.title,
       progress: goal.progress || 0,
     }));
@@ -217,15 +218,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Welcome Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
           Dashboard de Análisis
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-          {formatDate(today, 'EEEE, d \'de\' MMMM \'de\' yyyy')}
+          {formatDate(today, "EEEE, d 'de' MMMM 'de' yyyy")}
         </p>
       </motion.div>
 
@@ -270,7 +268,8 @@ export default function DashboardPage() {
                 className="mt-3"
               />
               <p className="mt-2 text-xs text-slate-500">
-                {Math.round((stats.habitsToday.completed / stats.habitsToday.total) * 100)}% completado
+                {Math.round((stats.habitsToday.completed / stats.habitsToday.total) * 100)}%
+                completado
               </p>
             </CardContent>
           </Card>
@@ -290,7 +289,11 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500 mt-1">ingresos este mes</p>
               <div className="mt-2">
                 <Badge variant="outline" className="text-xs text-green-600 border-green-600">
-                  {stats.finance.savingsRate >= 20 ? '🎯 Excelente' : stats.finance.savingsRate >= 10 ? '✅ Bien' : '⚠️ Mejorar'}
+                  {stats.finance.savingsRate >= 20
+                    ? '🎯 Excelente'
+                    : stats.finance.savingsRate >= 10
+                      ? '✅ Bien'
+                      : '⚠️ Mejorar'}
                 </Badge>
               </div>
             </CardContent>
@@ -310,9 +313,11 @@ export default function DashboardPage() {
               </div>
               <p className="text-xs text-slate-500 mt-1">gastos este mes</p>
               <div className="mt-2">
-                <p className={`text-xs font-medium ${stats.finance.monthlySavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {stats.finance.monthlySavings >= 0 ? 'Ahorro: ' : 'Déficit: '}
-                  ${Math.abs(stats.finance.monthlySavings).toFixed(2)}
+                <p
+                  className={`text-xs font-medium ${stats.finance.monthlySavings >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
+                  {stats.finance.monthlySavings >= 0 ? 'Ahorro: ' : 'Déficit: '}$
+                  {Math.abs(stats.finance.monthlySavings).toFixed(2)}
                 </p>
               </div>
             </CardContent>
@@ -331,13 +336,8 @@ export default function DashboardPage() {
                 {stats.finance.savingsRate.toFixed(1)}%
               </div>
               <p className="text-xs text-slate-500 mt-1">del ingreso mensual</p>
-              <Progress
-                value={Math.min(stats.finance.savingsRate, 100)}
-                className="mt-3"
-              />
-              <p className="mt-2 text-xs text-slate-500">
-                Meta: 20%
-              </p>
+              <Progress value={Math.min(stats.finance.savingsRate, 100)} className="mt-3" />
+              <p className="mt-2 text-xs text-slate-500">Meta: 20%</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -350,7 +350,9 @@ export default function DashboardPage() {
               <Wallet className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${stats.finance.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div
+                className={`text-2xl font-bold ${stats.finance.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
                 {stats.finance.balance >= 0 ? '+' : ''}${stats.finance.balance.toFixed(2)}
               </div>
               <p className="text-xs text-slate-500 mt-1">acumulado total</p>
@@ -448,4 +450,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

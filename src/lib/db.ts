@@ -1,15 +1,51 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaLibSQL } from '@prisma/adapter-libsql';
+import { createClient } from '@libsql/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function getPrismaClient(): PrismaClient {
-  // Por ahora, siempre usar SQLite local
-  // Turso se puede configurar más adelante si es necesario
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
+  const databaseUrl = process.env.DATABASE_URL || 'file:./prisma/dev.db';
+
+  // Configuración base con tipos correctos para log
+  const logLevels: Array<'error' | 'warn' | 'info' | 'query'> =
+    process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'];
+
+  const baseConfig = {
+    log: logLevels,
+  };
+
+  // Detectar si es Turso basándose en la URL (libsql:// o turso://)
+  const isTurso = databaseUrl.startsWith('libsql://') || databaseUrl.startsWith('turso://');
+
+  if (isTurso) {
+    // Para Turso, necesitamos el token de autenticación
+    const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+    if (!tursoToken) {
+      throw new Error('TURSO_AUTH_TOKEN debe estar configurada cuando DATABASE_URL apunta a Turso');
+    }
+
+    const libsqlClient = createClient({
+      url: databaseUrl,
+      authToken: tursoToken,
+    });
+
+    // PrismaLibSQL para Prisma 5.22.0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adapter = new PrismaLibSQL(libsqlClient as any);
+
+    return new PrismaClient({
+      ...baseConfig,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      adapter: adapter as any,
+    });
+  }
+
+  // SQLite (file://) - conexión directa sin adapter
+  return new PrismaClient(baseConfig);
 }
 
 export const prisma = globalForPrisma.prisma ?? getPrismaClient();
@@ -17,4 +53,3 @@ export const prisma = globalForPrisma.prisma ?? getPrismaClient();
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
-

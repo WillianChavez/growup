@@ -2,8 +2,14 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { Transaction } from '@/types/finance.types';
 import { startOfMonth, startOfYear, isAfter, isBefore, endOfMonth, endOfYear } from 'date-fns';
 
@@ -17,34 +23,49 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('month');
 
   // Filtrar transacciones según el período seleccionado
-  const filterTransactionsByTime = (transactions: Transaction[], filter: TimeFilter): Transaction[] => {
+  const filterTransactionsByTime = (
+    transactions: Transaction[],
+    filter: TimeFilter
+  ): Transaction[] => {
     const now = new Date();
-    
+
     switch (filter) {
       case 'month':
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
-        return transactions.filter(t => {
+        return transactions.filter((t) => {
           const date = new Date(t.date);
-          return isAfter(date, monthStart) && isBefore(date, monthEnd) || date.toDateString() === monthStart.toDateString() || date.toDateString() === monthEnd.toDateString();
+          return (
+            (isAfter(date, monthStart) && isBefore(date, monthEnd)) ||
+            date.toDateString() === monthStart.toDateString() ||
+            date.toDateString() === monthEnd.toDateString()
+          );
         });
-      
+
       case 'quarter':
         const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
         const quarterEnd = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 + 3, 0);
-        return transactions.filter(t => {
+        return transactions.filter((t) => {
           const date = new Date(t.date);
-          return isAfter(date, quarterStart) && isBefore(date, quarterEnd) || date.toDateString() === quarterStart.toDateString() || date.toDateString() === quarterEnd.toDateString();
+          return (
+            (isAfter(date, quarterStart) && isBefore(date, quarterEnd)) ||
+            date.toDateString() === quarterStart.toDateString() ||
+            date.toDateString() === quarterEnd.toDateString()
+          );
         });
-      
+
       case 'year':
         const yearStart = startOfYear(now);
         const yearEnd = endOfYear(now);
-        return transactions.filter(t => {
+        return transactions.filter((t) => {
           const date = new Date(t.date);
-          return isAfter(date, yearStart) && isBefore(date, yearEnd) || date.toDateString() === yearStart.toDateString() || date.toDateString() === yearEnd.toDateString();
+          return (
+            (isAfter(date, yearStart) && isBefore(date, yearEnd)) ||
+            date.toDateString() === yearStart.toDateString() ||
+            date.toDateString() === yearEnd.toDateString()
+          );
         });
-      
+
       case 'all':
       default:
         return transactions;
@@ -55,28 +76,31 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
 
   // Agrupar gastos por categoría
   const categoryTotals = filteredTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, transaction) => {
-      const categoryName = transaction.category?.name || 'Sin categoría';
-      const categoryColor = transaction.category?.color || '#94a3b8';
-      const categoryEmoji = transaction.category?.emoji || '💰';
-      
-      if (!acc[categoryName]) {
-        acc[categoryName] = {
-          name: categoryName,
-          value: 0,
-          color: categoryColor,
-          emoji: categoryEmoji,
-        };
-      }
-      acc[categoryName].value += transaction.amount;
-      return acc;
-    }, {} as Record<string, { name: string; value: number; color: string; emoji: string }>);
+    .filter((t) => t.type === 'expense')
+    .reduce(
+      (acc, transaction) => {
+        const categoryName = transaction.category?.name || 'Sin categoría';
+        const categoryColor = transaction.category?.color || '#94a3b8';
+        const categoryEmoji = transaction.category?.emoji || '💰';
+
+        if (!acc[categoryName]) {
+          acc[categoryName] = {
+            name: categoryName,
+            value: 0,
+            color: categoryColor,
+            emoji: categoryEmoji,
+          };
+        }
+        acc[categoryName].value += transaction.amount;
+        return acc;
+      },
+      {} as Record<string, { name: string; value: number; color: string; emoji: string }>
+    );
 
   const chartData = Object.values(categoryTotals)
     .sort((a, b) => b.value - a.value)
     .slice(0, 8)
-    .map(item => ({
+    .map((item) => ({
       name: `${item.emoji} ${item.name}`,
       value: parseFloat(item.value.toFixed(2)),
       color: item.color,
@@ -84,10 +108,14 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
 
   const getFilterLabel = () => {
     switch (timeFilter) {
-      case 'month': return 'Este Mes';
-      case 'quarter': return 'Este Trimestre';
-      case 'year': return 'Este Año';
-      case 'all': return 'Todo el Tiempo';
+      case 'month':
+        return 'Este Mes';
+      case 'quarter':
+        return 'Este Trimestre';
+      case 'year':
+        return 'Este Año';
+      case 'all':
+        return 'Todo el Tiempo';
     }
   };
 
@@ -148,7 +176,7 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip 
+            <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0];
@@ -168,4 +196,3 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
     </Card>
   );
 }
-

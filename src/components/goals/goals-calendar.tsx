@@ -6,7 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Goal } from '@/types/goal.types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, isToday } from 'date-fns';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameDay,
+  isSameMonth,
+  addMonths,
+  subMonths,
+  isToday,
+} from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface GoalsCalendarProps {
@@ -23,8 +33,8 @@ const PRIORITY_COLORS = {
 const STATUS_COLORS = {
   'not-started': 'border-slate-300',
   'in-progress': 'border-blue-500',
-  'completed': 'border-green-500',
-  'abandoned': 'border-slate-400',
+  completed: 'border-green-500',
+  abandoned: 'border-slate-400',
 };
 
 export function GoalsCalendar({ goals, onGoalClick }: GoalsCalendarProps) {
@@ -35,11 +45,11 @@ export function GoalsCalendar({ goals, onGoalClick }: GoalsCalendarProps) {
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   // Get goals with target dates
-  const goalsWithDates = goals.filter(g => g.targetDate);
+  const goalsWithDates = goals.filter((g) => g.targetDate);
 
   const getGoalsForDay = (day: Date) => {
-    return goalsWithDates.filter(goal => 
-      goal.targetDate && isSameDay(new Date(goal.targetDate), day)
+    return goalsWithDates.filter(
+      (goal) => goal.targetDate && isSameDay(new Date(goal.targetDate), day)
     );
   };
 
@@ -105,7 +115,9 @@ export function GoalsCalendar({ goals, onGoalClick }: GoalsCalendarProps) {
                   ${isDayToday ? 'ring-2 ring-blue-500' : ''}
                 `}
               >
-                <div className={`text-xs sm:text-sm font-semibold mb-1 ${isDayToday ? 'text-blue-600' : ''}`}>
+                <div
+                  className={`text-xs sm:text-sm font-semibold mb-1 ${isDayToday ? 'text-blue-600' : ''}`}
+                >
                   {format(day, 'd')}
                 </div>
 
@@ -124,7 +136,9 @@ export function GoalsCalendar({ goals, onGoalClick }: GoalsCalendarProps) {
                         `}
                         title={goal.title}
                       >
-                        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${PRIORITY_COLORS[goal.priority]}`} />
+                        <span
+                          className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${PRIORITY_COLORS[goal.priority]}`}
+                        />
                         {goal.title}
                       </button>
                     ))}
@@ -159,12 +173,15 @@ export function GoalsCalendar({ goals, onGoalClick }: GoalsCalendarProps) {
           </div>
           <div className="flex items-center gap-2">
             <span className="font-semibold">Estado:</span>
-            <Badge variant="outline" className="border-blue-500">En Progreso</Badge>
-            <Badge variant="outline" className="border-green-500">Completada</Badge>
+            <Badge variant="outline" className="border-blue-500">
+              En Progreso
+            </Badge>
+            <Badge variant="outline" className="border-green-500">
+              Completada
+            </Badge>
           </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-

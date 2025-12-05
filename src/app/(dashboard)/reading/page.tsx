@@ -25,13 +25,13 @@ export default function ReadingPage() {
   const { fetchBooks, createBook, updateBook, deleteBook, isLoading } = useBooks();
 
   useEffect(() => {
-    loadBooks();
+    const loadBooks = async () => {
+      const data = await fetchBooks();
+      setBooks(data);
+    };
+    void loadBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadBooks = async () => {
-    const data = await fetchBooks();
-    setBooks(data);
-  };
 
   const handleOpenDialog = (book?: Book) => {
     setEditingBook(book);
@@ -44,7 +44,8 @@ export default function ReadingPage() {
     } else {
       await createBook(data);
     }
-    await loadBooks();
+    const booksData = await fetchBooks();
+    setBooks(booksData);
   };
 
   const handleDeleteBook = (bookId: string) => {
@@ -55,7 +56,8 @@ export default function ReadingPage() {
   const handleConfirmDelete = async () => {
     if (bookToDelete) {
       await deleteBook(bookToDelete);
-      await loadBooks();
+      const booksData = await fetchBooks();
+      setBooks(booksData);
       setBookToDelete(null);
     }
   };
@@ -82,7 +84,7 @@ export default function ReadingPage() {
             Registra y organiza tus lecturas
           </p>
         </div>
-        <Button 
+        <Button
           className="bg-linear-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 w-full sm:w-auto text-sm hidden sm:flex"
           onClick={() => handleOpenDialog()}
         >
@@ -106,7 +108,9 @@ export default function ReadingPage() {
             <CardTitle className="text-xs sm:text-sm font-medium">Completados</CardTitle>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">{stats.completedThisYear}</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
+              {stats.completedThisYear}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -114,7 +118,9 @@ export default function ReadingPage() {
             <CardTitle className="text-xs sm:text-sm font-medium">Leyendo Ahora</CardTitle>
           </CardHeader>
           <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold text-blue-600">{stats.currentlyReading}</div>
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+              {stats.currentlyReading}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -130,10 +136,18 @@ export default function ReadingPage() {
       {/* Books List with Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as BookStatus)}>
         <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 lg:inline-flex">
-          <TabsTrigger value="reading" className="text-xs sm:text-sm">Leyendo</TabsTrigger>
-          <TabsTrigger value="to-read" className="text-xs sm:text-sm">Por Leer</TabsTrigger>
-          <TabsTrigger value="completed" className="text-xs sm:text-sm">Completados</TabsTrigger>
-          <TabsTrigger value="abandoned" className="text-xs sm:text-sm">Abandonados</TabsTrigger>
+          <TabsTrigger value="reading" className="text-xs sm:text-sm">
+            Leyendo
+          </TabsTrigger>
+          <TabsTrigger value="to-read" className="text-xs sm:text-sm">
+            Por Leer
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs sm:text-sm">
+            Completados
+          </TabsTrigger>
+          <TabsTrigger value="abandoned" className="text-xs sm:text-sm">
+            Abandonados
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
@@ -169,16 +183,16 @@ export default function ReadingPage() {
                     No hay libros en esta categoría
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
-                    {activeTab === 'reading' 
+                    {activeTab === 'reading'
                       ? 'Comienza a leer y registra tu progreso. Cada página te acerca a tus objetivos.'
                       : activeTab === 'to-read'
-                      ? 'Crea tu lista de lectura. Planifica qué leerás a continuación.'
-                      : activeTab === 'completed'
-                      ? '¡Excelente trabajo! Los libros completados aparecerán aquí.'
-                      : 'Los libros abandonados aparecerán aquí.'}
+                        ? 'Crea tu lista de lectura. Planifica qué leerás a continuación.'
+                        : activeTab === 'completed'
+                          ? '¡Excelente trabajo! Los libros completados aparecerán aquí.'
+                          : 'Los libros abandonados aparecerán aquí.'}
                   </p>
                   {activeTab !== 'completed' && (
-                    <Button 
+                    <Button
                       onClick={() => handleOpenDialog()}
                       className="bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                     >
@@ -227,10 +241,7 @@ export default function ReadingPage() {
 
       {/* Floating Action Button para móvil */}
       {isMobile && (
-        <FloatingActionButton
-          onClick={() => handleOpenDialog()}
-          label="Agregar Libro"
-        />
+        <FloatingActionButton onClick={() => handleOpenDialog()} label="Agregar Libro" />
       )}
     </div>
   );

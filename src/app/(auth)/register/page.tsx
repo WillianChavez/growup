@@ -8,7 +8,14 @@ import { UserPlus, Mail, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function RegisterPage() {
@@ -218,4 +225,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

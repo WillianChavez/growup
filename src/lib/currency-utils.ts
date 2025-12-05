@@ -32,4 +32,3 @@ export function calculatePercentage(value: number, total: number): number {
 export function roundToDecimals(num: number, decimals: number = 2): number {
   return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
 }
-

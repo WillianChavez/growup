@@ -22,7 +22,9 @@ export function useTransactionCategories() {
     }
   };
 
-  const createCategory = async (data: TransactionCategoryFormData): Promise<TransactionCategory | null> => {
+  const createCategory = async (
+    data: TransactionCategoryFormData
+  ): Promise<TransactionCategory | null> => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/transaction-categories', {
@@ -41,7 +43,10 @@ export function useTransactionCategories() {
     }
   };
 
-  const updateCategory = async (id: string, data: Partial<TransactionCategoryFormData>): Promise<TransactionCategory | null> => {
+  const updateCategory = async (
+    id: string,
+    data: Partial<TransactionCategoryFormData>
+  ): Promise<TransactionCategory | null> => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/transaction-categories/${id}`, {
@@ -83,4 +88,3 @@ export function useTransactionCategories() {
     isLoading,
   };
 }
-

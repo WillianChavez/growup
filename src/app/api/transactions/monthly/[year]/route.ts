@@ -3,10 +3,7 @@ import { TransactionService } from '@/services/transaction.service';
 import { verifyToken } from '@/lib/jwt';
 import type { ApiResponse } from '@/types/api.types';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ year: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ year: string }> }) {
   try {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -48,4 +45,3 @@ export async function GET(
     );
   }
 }
-

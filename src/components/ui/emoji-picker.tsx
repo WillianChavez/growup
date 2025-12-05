@@ -49,4 +49,3 @@ export function EmojiPickerComponent({ value, onChange }: EmojiPickerComponentPr
     </Popover>
   );
 }
-

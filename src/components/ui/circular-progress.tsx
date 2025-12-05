@@ -16,16 +16,16 @@ const SIZE_CONFIG = {
   lg: { radius: 36, strokeWidth: 5, fontSize: 'text-sm' },
 };
 
-export function CircularProgress({ 
-  percentage, 
-  size = 'sm', 
+export function CircularProgress({
+  percentage,
+  size = 'sm',
   showLabel = true,
-  className 
+  className,
 }: CircularProgressProps) {
   const config = SIZE_CONFIG[size];
   const circumference = 2 * Math.PI * config.radius;
   const offset = circumference - (percentage / 100) * circumference;
-  
+
   const svgSize = config.radius * 2 + config.strokeWidth * 2;
   const center = svgSize / 2;
 
@@ -39,11 +39,7 @@ export function CircularProgress({
 
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)}>
-      <svg
-        width={svgSize}
-        height={svgSize}
-        className="transform -rotate-90"
-      >
+      <svg width={svgSize} height={svgSize} className="transform -rotate-90">
         {/* Background circle */}
         <circle
           cx={center}
@@ -54,7 +50,7 @@ export function CircularProgress({
           fill="none"
           className="text-slate-200 dark:text-slate-700"
         />
-        
+
         {/* Progress circle */}
         <motion.circle
           cx={center}
@@ -70,17 +66,18 @@ export function CircularProgress({
           transition={{ duration: 0.8, ease: 'easeInOut' }}
         />
       </svg>
-      
+
       {/* Percentage label */}
       {showLabel && (
-        <div className={cn(
-          'absolute inset-0 flex items-center justify-center font-semibold',
-          config.fontSize
-        )}>
+        <div
+          className={cn(
+            'absolute inset-0 flex items-center justify-center font-semibold',
+            config.fontSize
+          )}
+        >
           {Math.round(percentage)}%
         </div>
       )}
     </div>
   );
 }
-

@@ -1,8 +1,17 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { format, subDays, startOfDay } from 'date-fns';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface HabitStatsChartProps {
@@ -32,7 +41,7 @@ export function HabitStatsChart({ data }: HabitStatsChartProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip 
+            <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
@@ -57,4 +66,3 @@ export function HabitStatsChart({ data }: HabitStatsChartProps) {
     </Card>
   );
 }
-

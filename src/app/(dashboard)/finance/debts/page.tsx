@@ -44,7 +44,7 @@ export default function DebtsPage() {
   const handleSave = async (data: DebtFormData) => {
     const url = editingDebt ? `/api/financial/debts/${editingDebt.id}` : '/api/financial/debts';
     const method = editingDebt ? 'PATCH' : 'POST';
-    
+
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -87,20 +87,52 @@ export default function DebtsPage() {
     }
   };
 
-  const filteredDebts = showPaid ? debts : debts.filter(d => d.status === 'active');
-  const activeDebts = debts.filter(d => d.status === 'active');
-  
+  const filteredDebts = showPaid ? debts : debts.filter((d) => d.status === 'active');
+  const activeDebts = debts.filter((d) => d.status === 'active');
+
   const totalDebt = activeDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
   const totalMonthlyPayment = activeDebts.reduce((sum, d) => sum + d.monthlyPayment, 0);
-  const consumptionDebt = activeDebts.filter(d => d.type === 'consumption').reduce((sum, d) => sum + d.monthlyPayment, 0);
+  const consumptionDebt = activeDebts
+    .filter((d) => d.type === 'consumption')
+    .reduce((sum, d) => sum + d.monthlyPayment, 0);
 
   const chartData = [
-    { name: 'Consumo', value: activeDebts.filter(d => d.type === 'consumption').reduce((sum, d) => sum + d.remainingAmount, 0), color: '#ef4444' },
-    { name: 'Vivienda', value: activeDebts.filter(d => d.type === 'housing').reduce((sum, d) => sum + d.remainingAmount, 0), color: '#3b82f6' },
-    { name: 'Educación', value: activeDebts.filter(d => d.type === 'education').reduce((sum, d) => sum + d.remainingAmount, 0), color: '#10b981' },
-    { name: 'Vehículo', value: activeDebts.filter(d => d.type === 'vehicle').reduce((sum, d) => sum + d.remainingAmount, 0), color: '#f59e0b' },
-    { name: 'Otros', value: activeDebts.filter(d => d.type === 'other').reduce((sum, d) => sum + d.remainingAmount, 0), color: '#8b5cf6' },
-  ].filter(item => item.value > 0);
+    {
+      name: 'Consumo',
+      value: activeDebts
+        .filter((d) => d.type === 'consumption')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+      color: '#ef4444',
+    },
+    {
+      name: 'Vivienda',
+      value: activeDebts
+        .filter((d) => d.type === 'housing')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+      color: '#3b82f6',
+    },
+    {
+      name: 'Educación',
+      value: activeDebts
+        .filter((d) => d.type === 'education')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+      color: '#10b981',
+    },
+    {
+      name: 'Vehículo',
+      value: activeDebts
+        .filter((d) => d.type === 'vehicle')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+      color: '#f59e0b',
+    },
+    {
+      name: 'Otros',
+      value: activeDebts
+        .filter((d) => d.type === 'other')
+        .reduce((sum, d) => sum + d.remainingAmount, 0),
+      color: '#8b5cf6',
+    },
+  ].filter((item) => item.value > 0);
 
   const getTypeIcon = (type: string) => {
     const icons: Record<string, string> = {
@@ -130,7 +162,13 @@ export default function DebtsPage() {
               <Switch id="show-paid" checked={showPaid} onCheckedChange={setShowPaid} />
               <Label htmlFor="show-paid">Ver pagadas</Label>
             </div>
-            <Button onClick={() => { setEditingDebt(undefined); setDialogOpen(true); }} className="flex-1 sm:flex-none">
+            <Button
+              onClick={() => {
+                setEditingDebt(undefined);
+                setDialogOpen(true);
+              }}
+              className="flex-1 sm:flex-none"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Agregar Deuda
             </Button>
@@ -154,7 +192,9 @@ export default function DebtsPage() {
             <CardTitle className="text-sm font-medium">Pago Mensual Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">${totalMonthlyPayment.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              ${totalMonthlyPayment.toFixed(2)}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -164,7 +204,10 @@ export default function DebtsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">${consumptionDebt.toFixed(2)}</div>
             <p className="text-xs text-slate-500 mt-1">
-              {totalMonthlyPayment > 0 ? ((consumptionDebt / totalMonthlyPayment) * 100).toFixed(1) : 0}% del total
+              {totalMonthlyPayment > 0
+                ? ((consumptionDebt / totalMonthlyPayment) * 100).toFixed(1)
+                : 0}
+              % del total
             </p>
           </CardContent>
         </Card>
@@ -211,30 +254,42 @@ export default function DebtsPage() {
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"
+                  />
                 ))}
               </div>
             ) : filteredDebts.length === 0 ? (
               <p className="text-center py-8 text-slate-500">
-                {showPaid ? 'No tienes deudas registradas.' : 'No tienes deudas activas. ¡Felicidades!'}
+                {showPaid
+                  ? 'No tienes deudas registradas.'
+                  : 'No tienes deudas activas. ¡Felicidades!'}
               </p>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {filteredDebts.map((debt) => (
-                  <div key={debt.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900">
+                  <div
+                    key={debt.id}
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2">
                         <span className="text-xl">{getTypeIcon(debt.type)}</span>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium truncate">{debt.creditor}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <Badge variant={debt.status === 'paid' ? 'default' : 'destructive'} className="text-xs">
+                            <Badge
+                              variant={debt.status === 'paid' ? 'default' : 'destructive'}
+                              className="text-xs"
+                            >
                               {debt.status === 'paid' ? 'Pagada' : 'Activa'}
                             </Badge>
                             <span className="text-xs text-slate-500">{debt.annualRate}% anual</span>
                           </div>
                           <p className="text-xs text-slate-500 mt-1">
-                            ${debt.remainingAmount.toFixed(2)} de ${debt.totalAmount.toFixed(2)} • ${debt.monthlyPayment.toFixed(2)}/mes
+                            ${debt.remainingAmount.toFixed(2)} de ${debt.totalAmount.toFixed(2)} • $
+                            {debt.monthlyPayment.toFixed(2)}/mes
                           </p>
                           {debt.description && (
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
@@ -252,13 +307,18 @@ export default function DebtsPage() {
                         onClick={() => handleMarkAsPaid(debt)}
                         title={debt.status === 'paid' ? 'Marcar como activa' : 'Marcar como pagada'}
                       >
-                        <CheckCircle2 className={`h-4 w-4 ${debt.status === 'paid' ? 'text-green-600' : 'text-slate-400'}`} />
+                        <CheckCircle2
+                          className={`h-4 w-4 ${debt.status === 'paid' ? 'text-green-600' : 'text-slate-400'}`}
+                        />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => { setEditingDebt(debt); setDialogOpen(true); }}
+                        onClick={() => {
+                          setEditingDebt(debt);
+                          setDialogOpen(true);
+                        }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -302,4 +362,3 @@ export default function DebtsPage() {
     </div>
   );
 }
-

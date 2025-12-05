@@ -57,11 +57,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
             <div className="flex h-full flex-col gap-y-5 overflow-y-auto px-6 pb-4">
               {/* Header */}
               <div className="flex h-16 items-center justify-between">
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-2"
-                  onClick={onClose}
-                >
+                <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
@@ -69,11 +65,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     GrowUp
                   </span>
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onClose}
-                >
+                <Button variant="ghost" size="icon" onClick={onClose}>
                   <X className="h-6 w-6" />
                 </Button>
               </div>
@@ -84,7 +76,8 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                   <li>
                     <ul role="list" className="-mx-2 space-y-1">
                       {navigation.map((item) => {
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                        const isActive =
+                          pathname === item.href || pathname.startsWith(item.href + '/');
                         return (
                           <li key={item.name}>
                             <Link
@@ -120,4 +113,3 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     </AnimatePresence>
   );
 }
-

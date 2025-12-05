@@ -37,25 +37,27 @@ export function TransactionCategorySelector({ value, onChange, type }: CategoryS
   const { fetchCategories, createCategory } = useTransactionCategories();
 
   useEffect(() => {
-    loadCategories();
+    const loadCategories = async () => {
+      const cats = await fetchCategories(type);
+      setCategories(cats);
+      if (cats.length > 0 && !value) {
+        onChange(cats[0].id);
+      }
+    };
+    void loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
+  // Sync type when it changes
   useEffect(() => {
-    setNewCategory(prev => ({ ...prev, type }));
+    setNewCategory((prev) => ({ ...prev, type }));
   }, [type]);
-
-  const loadCategories = async () => {
-    const cats = await fetchCategories(type);
-    setCategories(cats);
-    if (cats.length > 0 && !value) {
-      onChange(cats[0].id);
-    }
-  };
 
   const handleCreateCategory = async () => {
     const created = await createCategory(newCategory);
     if (created) {
-      await loadCategories();
+      const cats = await fetchCategories(type);
+      setCategories(cats);
       onChange(created.id);
       setDialogOpen(false);
       setNewCategory({ name: '', emoji: '💰', type: type });
@@ -141,4 +143,3 @@ export function TransactionCategorySelector({ value, onChange, type }: CategoryS
     </>
   );
 }
-

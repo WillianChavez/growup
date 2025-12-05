@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { UserWithoutPassword, LoginCredentials, RegisterData } from '@/types/auth.types';
-import type { ApiResponse, ErrorResponse } from '@/types/api.types';
 
 interface UseAuthResult {
   user: UserWithoutPassword | null;
@@ -43,7 +42,7 @@ export function useAuth(): UseAuthResult {
       }
 
       return true;
-    } catch (err) {
+    } catch {
       setError('Error de conexión');
       return false;
     } finally {
@@ -76,7 +75,7 @@ export function useAuth(): UseAuthResult {
       }
 
       return true;
-    } catch (err) {
+    } catch {
       setError('Error de conexión');
       return false;
     } finally {
@@ -109,4 +108,3 @@ export function useAuth(): UseAuthResult {
     logout,
   };
 }
-

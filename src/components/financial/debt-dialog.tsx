@@ -4,14 +4,27 @@ import { useState, useEffect } from 'react';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { Debt, DebtFormData } from '@/types/financial.types';
+import type { Debt, DebtFormData, DebtType } from '@/types/financial.types';
 import { cn } from '@/lib/utils';
 
 interface DebtDialogProps {
@@ -95,7 +108,10 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({ ...formData, totalAmount: value === '' ? 0 : parseFloat(value) || 0 });
+                    setFormData({
+                      ...formData,
+                      totalAmount: value === '' ? 0 : parseFloat(value) || 0,
+                    });
                   }
                 }}
                 placeholder="10000"
@@ -113,7 +129,10 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({ ...formData, remainingAmount: value === '' ? 0 : parseFloat(value) || 0 });
+                    setFormData({
+                      ...formData,
+                      remainingAmount: value === '' ? 0 : parseFloat(value) || 0,
+                    });
                   }
                 }}
                 placeholder="8000"
@@ -133,7 +152,10 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({ ...formData, monthlyPayment: value === '' ? 0 : parseFloat(value) || 0 });
+                    setFormData({
+                      ...formData,
+                      monthlyPayment: value === '' ? 0 : parseFloat(value) || 0,
+                    });
                   }
                 }}
                 placeholder="500"
@@ -151,7 +173,10 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({ ...formData, annualRate: value === '' ? 0 : parseFloat(value) || 0 });
+                    setFormData({
+                      ...formData,
+                      annualRate: value === '' ? 0 : parseFloat(value) || 0,
+                    });
                   }
                 }}
                 placeholder="15.5"
@@ -162,7 +187,10 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
 
           <div className="space-y-2">
             <Label>Tipo de Deuda *</Label>
-            <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
+            <Select
+              value={formData.type}
+              onValueChange={(value: DebtType) => setFormData({ ...formData, type: value })}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -180,13 +208,25 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
             <Label>Fecha de Inicio</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn('w-full justify-start text-left font-normal')}>
+                <Button
+                  variant="outline"
+                  className={cn('w-full justify-start text-left font-normal')}
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.startDate ? format(formData.startDate, 'PPP') : <span>Selecciona fecha</span>}
+                  {formData.startDate ? (
+                    format(formData.startDate, 'PPP')
+                  ) : (
+                    <span>Selecciona fecha</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={formData.startDate} onSelect={(date) => date && setFormData({ ...formData, startDate: date })} initialFocus />
+                <Calendar
+                  mode="single"
+                  selected={formData.startDate}
+                  onSelect={(date) => date && setFormData({ ...formData, startDate: date })}
+                  initialFocus
+                />
               </PopoverContent>
             </Popover>
           </div>
@@ -216,4 +256,3 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
     </Dialog>
   );
 }
-

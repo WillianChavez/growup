@@ -17,14 +17,16 @@ export const goalSchema = z.object({
   status: z.enum(['not-started', 'in-progress', 'completed', 'abandoned']).default('not-started'),
   targetDate: z.coerce.date().optional().nullable(),
   progress: z.number().min(0).max(100).default(0),
-  milestones: z.array(
-    z.object({
-      title: z.string().min(1, 'El título del milestone es requerido'),
-      completed: z.boolean().default(false),
-      completedAt: z.coerce.date().optional().nullable(),
-    })
-  ).optional().default([]),
+  milestones: z
+    .array(
+      z.object({
+        title: z.string().min(1, 'El título del milestone es requerido'),
+        completed: z.boolean().default(false),
+        completedAt: z.coerce.date().optional().nullable(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export type GoalInput = z.infer<typeof goalSchema>;
-

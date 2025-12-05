@@ -1,7 +1,16 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import type { Book } from '@/types/book.types';
 
 interface ReadingProgressChartProps {
@@ -10,9 +19,9 @@ interface ReadingProgressChartProps {
 
 export function ReadingProgressChart({ books }: ReadingProgressChartProps) {
   const readingBooks = books
-    .filter(book => book.status === 'reading' && book.pages > 0)
+    .filter((book) => book.status === 'reading' && book.pages > 0)
     .slice(0, 5)
-    .map(book => ({
+    .map((book) => ({
       title: book.title.length > 15 ? book.title.substring(0, 15) + '...' : book.title,
       leídas: book.currentPage,
       pendientes: book.pages - book.currentPage,
@@ -44,7 +53,7 @@ export function ReadingProgressChart({ books }: ReadingProgressChartProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" />
             <YAxis dataKey="title" type="category" width={100} />
-            <Tooltip 
+            <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
@@ -52,7 +61,9 @@ export function ReadingProgressChart({ books }: ReadingProgressChartProps) {
                     <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
                       <p className="font-semibold mb-2">{data.title}</p>
                       <p className="text-sm text-blue-600">Leídas: {data.leídas} páginas</p>
-                      <p className="text-sm text-slate-500">Pendientes: {data.pendientes} páginas</p>
+                      <p className="text-sm text-slate-500">
+                        Pendientes: {data.pendientes} páginas
+                      </p>
                       <p className="text-sm font-medium">Progreso: {data.porcentaje}%</p>
                     </div>
                   );
@@ -69,4 +80,3 @@ export function ReadingProgressChart({ books }: ReadingProgressChartProps) {
     </Card>
   );
 }
-

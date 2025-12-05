@@ -1,9 +1,13 @@
 import { prisma } from '@/lib/db';
-import type { Goal, GoalStats, Milestone } from '@/types/goal.types';
+import { Prisma } from '@prisma/client';
+import type { Goal, GoalStats, Milestone, GoalCategory } from '@/types/goal.types';
 import { getYearRange, getMonthRange } from '@/lib/date-utils';
 
 export class GoalService {
-  static async create(userId: string, data: Omit<Goal, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'completedAt'>): Promise<Goal> {
+  static async create(
+    userId: string,
+    data: Omit<Goal, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'completedAt'>
+  ): Promise<Goal> {
     return prisma.goal.create({
       data: {
         ...data,
@@ -27,8 +31,8 @@ export class GoalService {
   }
 
   static async findAllByUser(userId: string, status?: string): Promise<Goal[]> {
-    const where: any = { userId };
-    
+    const where: Prisma.GoalWhereInput = { userId };
+
     if (status) {
       where.status = status;
     }
@@ -95,14 +99,16 @@ export class GoalService {
     } as Goal;
   }
 
-  static async completeMilestone(id: string, userId: string, milestoneId: string): Promise<Goal | null> {
+  static async completeMilestone(
+    id: string,
+    userId: string,
+    milestoneId: string
+  ): Promise<Goal | null> {
     const goal = await this.findById(id, userId);
     if (!goal || !goal.milestones) return null;
 
     const updatedMilestones = goal.milestones.map((m: Milestone) =>
-      m.id === milestoneId
-        ? { ...m, completed: true, completedAt: new Date() }
-        : m
+      m.id === milestoneId ? { ...m, completed: true, completedAt: new Date() } : m
     );
 
     const completedCount = updatedMilestones.filter((m: Milestone) => m.completed).length;
@@ -121,7 +127,7 @@ export class GoalService {
         where: { id, userId },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -156,7 +162,7 @@ export class GoalService {
     });
 
     const byCategory = Object.entries(categoryMap).map(([category, count]) => ({
-      category: category as any,
+      category: category as GoalCategory,
       count,
     }));
 
@@ -172,4 +178,3 @@ export class GoalService {
     };
   }
 }
-

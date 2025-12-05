@@ -3,11 +3,29 @@
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { RecurringExpense, RecurringExpenseFormData } from '@/types/budget.types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type {
+  RecurringExpense,
+  RecurringExpenseFormData,
+  ExpenseFrequency,
+  ExpenseCategory,
+} from '@/types/budget.types';
 
 interface RecurringExpenseDialogProps {
   open: boolean;
@@ -16,7 +34,12 @@ interface RecurringExpenseDialogProps {
   onSave: (data: RecurringExpenseFormData) => Promise<void>;
 }
 
-export function RecurringExpenseDialog({ open, onOpenChange, expense, onSave }: RecurringExpenseDialogProps) {
+export function RecurringExpenseDialog({
+  open,
+  onOpenChange,
+  expense,
+  onSave,
+}: RecurringExpenseDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<RecurringExpenseFormData>({
     name: '',
@@ -55,7 +78,9 @@ export function RecurringExpenseDialog({ open, onOpenChange, expense, onSave }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{expense ? 'Editar Gasto Recurrente' : 'Nuevo Gasto Recurrente'}</DialogTitle>
+          <DialogTitle>
+            {expense ? 'Editar Gasto Recurrente' : 'Nuevo Gasto Recurrente'}
+          </DialogTitle>
           <DialogDescription>
             {expense ? 'Modifica los detalles del gasto' : 'Registra un nuevo gasto recurrente'}
           </DialogDescription>
@@ -94,7 +119,12 @@ export function RecurringExpenseDialog({ open, onOpenChange, expense, onSave }: 
 
             <div className="space-y-2">
               <Label>Frecuencia *</Label>
-              <Select value={formData.frequency} onValueChange={(value: any) => setFormData({ ...formData, frequency: value })}>
+              <Select
+                value={formData.frequency}
+                onValueChange={(value: ExpenseFrequency) =>
+                  setFormData({ ...formData, frequency: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -110,7 +140,12 @@ export function RecurringExpenseDialog({ open, onOpenChange, expense, onSave }: 
 
           <div className="space-y-2">
             <Label>Categoría *</Label>
-            <Select value={formData.category} onValueChange={(value: any) => setFormData({ ...formData, category: value })}>
+            <Select
+              value={formData.category}
+              onValueChange={(value: ExpenseCategory) =>
+                setFormData({ ...formData, category: value })
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -156,4 +191,3 @@ export function RecurringExpenseDialog({ open, onOpenChange, expense, onSave }: 
     </Dialog>
   );
 }
-

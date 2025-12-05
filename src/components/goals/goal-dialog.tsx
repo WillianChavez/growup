@@ -15,7 +15,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Goal, GoalFormData, GoalCategory } from '@/types/goal.types';
@@ -29,7 +35,14 @@ interface GoalDialogProps {
 }
 
 const CATEGORIES: GoalCategory[] = [
-  'professional', 'health', 'personal', 'financial', 'learning', 'relationships', 'creative', 'other'
+  'professional',
+  'health',
+  'personal',
+  'financial',
+  'learning',
+  'relationships',
+  'creative',
+  'other',
 ];
 
 const CATEGORY_LABELS: Record<GoalCategory, string> = {
@@ -65,7 +78,12 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
         category: goal?.category || 'personal',
         priority: goal?.priority || 'medium',
         targetDate: goal?.targetDate || undefined,
-        milestones: goal?.milestones?.map(m => ({ title: m.title, completed: m.completed, completedAt: m.completedAt })) || [],
+        milestones:
+          goal?.milestones?.map((m) => ({
+            title: m.title,
+            completed: m.completed,
+            completedAt: m.completedAt,
+          })) || [],
       });
       setNewMilestone('');
     }
@@ -148,7 +166,9 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
               <Label>Categoría</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value: GoalCategory) => setFormData({ ...formData, category: value })}
+                onValueChange={(value: GoalCategory) =>
+                  setFormData({ ...formData, category: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -176,7 +196,11 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.targetDate ? format(formData.targetDate, 'PPP') : <span>Selecciona fecha</span>}
+                    {formData.targetDate ? (
+                      format(formData.targetDate, 'PPP')
+                    ) : (
+                      <span>Selecciona fecha</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -208,7 +232,10 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
             {(formData.milestones?.length || 0) > 0 && (
               <div className="space-y-2 mt-3">
                 {formData.milestones?.map((milestone, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded">
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded"
+                  >
                     <span className="flex-1">{milestone.title}</span>
                     <Button
                       type="button"
@@ -238,4 +265,3 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
     </Dialog>
   );
 }
-

@@ -1,9 +1,17 @@
 import { prisma } from '@/lib/db';
-import type { Transaction, FinanceStats, CategoryTotal, MonthlyTransactionGroup } from '@/types/finance.types';
+import type {
+  Transaction,
+  FinanceStats,
+  CategoryTotal,
+  MonthlyTransactionGroup,
+} from '@/types/finance.types';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 
 export class TransactionService {
-  static async create(userId: string, data: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'category'>): Promise<Transaction> {
+  static async create(
+    userId: string,
+    data: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'category'>
+  ): Promise<Transaction> {
     return prisma.transaction.create({
       data: {
         amount: data.amount,
@@ -107,7 +115,7 @@ export class TransactionService {
 
     transactions.forEach((t) => {
       const monthKey = format(t.date, 'yyyy-MM');
-      
+
       if (!monthlyGroups[monthKey]) {
         monthlyGroups[monthKey] = {
           month: monthKey, // Cambiado a formato 'yyyy-MM'
@@ -120,7 +128,7 @@ export class TransactionService {
       }
 
       monthlyGroups[monthKey].transactions.push(t);
-      
+
       if (t.type === 'income') {
         monthlyGroups[monthKey].totalIncome += t.amount;
       } else {
@@ -167,7 +175,8 @@ export class TransactionService {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.date !== undefined) updateData.date = data.date;
     if (data.isRecurring !== undefined) updateData.isRecurring = data.isRecurring;
-    if (data.recurringFrequency !== undefined) updateData.recurringFrequency = data.recurringFrequency;
+    if (data.recurringFrequency !== undefined)
+      updateData.recurringFrequency = data.recurringFrequency;
     if (data.tags !== undefined) updateData.tags = data.tags ? JSON.stringify(data.tags) : null;
 
     const updated = await prisma.transaction.update({
@@ -223,8 +232,11 @@ export class TransactionService {
       .reduce((sum, t) => sum + t.amount, 0);
 
     // Category totals (este mes, solo gastos)
-    const categoryMap: Record<string, { categoryId: string; categoryName: string; emoji: string; total: number; count: number }> = {};
-    
+    const categoryMap: Record<
+      string,
+      { categoryId: string; categoryName: string; emoji: string; total: number; count: number }
+    > = {};
+
     thisMonthTransactions
       .filter((t) => t.type === 'expense')
       .forEach((t) => {

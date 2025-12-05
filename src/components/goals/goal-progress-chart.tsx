@@ -1,7 +1,16 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 interface GoalProgressChartProps {
   data: {
@@ -29,7 +38,7 @@ export function GoalProgressChart({ data }: GoalProgressChartProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" domain={[0, 100]} />
             <YAxis dataKey="name" type="category" width={120} />
-            <Tooltip 
+            <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
@@ -54,4 +63,3 @@ export function GoalProgressChart({ data }: GoalProgressChartProps) {
     </Card>
   );
 }
-

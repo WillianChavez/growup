@@ -24,7 +24,7 @@ export function formatDate(date: Date | string, formatStr: string = 'PP'): strin
 export function formatRelativeDate(date: Date | string): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
   if (!isValid(dateObj)) return '';
-  
+
   const now = new Date();
   const diff = differenceInDays(now, dateObj);
 
@@ -94,4 +94,3 @@ export function getStreakDays(dates: Date[]): number {
 
   return streak;
 }
-

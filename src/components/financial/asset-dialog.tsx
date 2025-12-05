@@ -3,12 +3,25 @@
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { Asset, AssetFormData } from '@/types/financial.types';
+import type { Asset, AssetFormData, AssetType, AssetCategory } from '@/types/financial.types';
 
 interface AssetDialogProps {
   open: boolean;
@@ -95,7 +108,10 @@ export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogPr
 
           <div className="space-y-2">
             <Label>Tipo de Activo *</Label>
-            <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
+            <Select
+              value={formData.type}
+              onValueChange={(value: AssetType) => setFormData({ ...formData, type: value })}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -108,7 +124,12 @@ export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogPr
 
           <div className="space-y-2">
             <Label>Categoría *</Label>
-            <Select value={formData.category} onValueChange={(value: any) => setFormData({ ...formData, category: value })}>
+            <Select
+              value={formData.category}
+              onValueChange={(value: AssetCategory) =>
+                setFormData({ ...formData, category: value })
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -147,4 +168,3 @@ export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogPr
     </Dialog>
   );
 }
-

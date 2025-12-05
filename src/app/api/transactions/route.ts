@@ -74,7 +74,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que la categoría existe y pertenece al usuario
-    const category = await TransactionCategoryService.findById(validation.data.categoryId, payload.userId);
+    const category = await TransactionCategoryService.findById(
+      validation.data.categoryId,
+      payload.userId
+    );
     if (!category) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Categoría no encontrada' },
@@ -101,4 +104,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

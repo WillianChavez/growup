@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
     // Validar datos
     const validation = loginSchema.safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json<ApiResponse>(
         {
@@ -67,4 +67,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

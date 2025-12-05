@@ -63,4 +63,3 @@ export interface ReadingStats {
   favoriteGenres: { genre: string; count: number }[];
   readingGoalProgress: number;
 }
-

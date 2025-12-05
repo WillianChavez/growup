@@ -79,4 +79,3 @@ export interface FinancialDashboardKPIs {
     monthlyPayment: number;
   }[];
 }
-

@@ -9,7 +9,7 @@ export class AuthService {
     try {
       // Verificar si el usuario ya existe
       const existingUser = await UserService.findByEmail(data.email);
-      
+
       if (existingUser) {
         return {
           success: false,
@@ -97,4 +97,3 @@ export class AuthService {
     }
   }
 }
-

@@ -45,7 +45,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     if (!user) return;
-    
+
     setIsSaving(true);
     try {
       const response = await fetch('/api/auth/update-profile', {
@@ -82,7 +82,7 @@ export default function SettingsPage() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         alert('Datos exportados exitosamente');
       } else {
         throw new Error('Error al exportar datos');
@@ -131,9 +131,7 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Configuración
-          </h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Configuración</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Personaliza tu experiencia en GrowUp
           </p>
@@ -152,9 +150,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-          Configuración
-        </h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Configuración</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Personaliza tu experiencia en GrowUp
         </p>
@@ -170,8 +166,8 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
-              <Input 
-                id="name" 
+              <Input
+                id="name"
                 placeholder="Tu nombre"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -179,11 +175,11 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={user?.email || ''} 
-                disabled 
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ''}
+                disabled
                 className="bg-slate-100 dark:bg-slate-800"
               />
             </div>
@@ -206,9 +202,9 @@ export default function SettingsPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Descarga todos tus datos en formato JSON
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full" 
+              <Button
+                variant="outline"
+                className="w-full"
                 onClick={handleExportData}
                 disabled={isExporting}
               >
@@ -250,7 +246,8 @@ export default function SettingsPage() {
 
             <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950/20 p-3 border border-yellow-200 dark:border-yellow-800">
               <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                ⚠️ La importación de datos sobrescribirá tus datos actuales. Asegúrate de hacer una copia de seguridad primero.
+                ⚠️ La importación de datos sobrescribirá tus datos actuales. Asegúrate de hacer una
+                copia de seguridad primero.
               </p>
             </div>
           </CardContent>
@@ -259,4 +256,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

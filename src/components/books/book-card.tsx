@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, MoreVertical, Pencil, Trash2, Star } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,16 +24,16 @@ interface BookCardProps {
 
 const statusColors: Record<string, string> = {
   'to-read': 'bg-slate-100 text-slate-700 dark:bg-slate-950',
-  'reading': 'bg-blue-100 text-blue-700 dark:bg-blue-950',
-  'completed': 'bg-green-100 text-green-700 dark:bg-green-950',
-  'abandoned': 'bg-orange-100 text-orange-700 dark:bg-orange-950',
+  reading: 'bg-blue-100 text-blue-700 dark:bg-blue-950',
+  completed: 'bg-green-100 text-green-700 dark:bg-green-950',
+  abandoned: 'bg-orange-100 text-orange-700 dark:bg-orange-950',
 };
 
 const statusLabels: Record<string, string> = {
   'to-read': 'Por Leer',
-  'reading': 'Leyendo',
-  'completed': 'Completado',
-  'abandoned': 'Abandonado',
+  reading: 'Leyendo',
+  completed: 'Completado',
+  abandoned: 'Abandonado',
 };
 
 export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
@@ -57,9 +56,9 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
+                <Button
+                  size="icon"
+                  variant="ghost"
                   className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
                 >
                   <MoreVertical className="h-4 w-4" />
@@ -70,10 +69,7 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
                   <Pencil className="mr-2 h-4 w-4" />
                   Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onDelete(book.id)}
-                  className="text-red-600"
-                >
+                <DropdownMenuItem onClick={() => onDelete(book.id)} className="text-red-600">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Eliminar
                 </DropdownMenuItem>
@@ -95,7 +91,7 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
 
           {/* Status and Genre */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <Badge className={cn(statusColors[book.status], "text-[10px] sm:text-xs")}>
+            <Badge className={cn(statusColors[book.status], 'text-[10px] sm:text-xs')}>
               {statusLabels[book.status]}
             </Badge>
             {book.genre && (
@@ -124,4 +120,3 @@ export function BookCard({ book, index, onEdit, onDelete }: BookCardProps) {
     </motion.div>
   );
 }
-

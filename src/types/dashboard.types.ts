@@ -1,7 +1,4 @@
 import type { HabitStats } from './habit.types';
-import type { ReadingStats } from './book.types';
-import type { FinanceStats } from './finance.types';
-import type { GoalStats } from './goal.types';
 
 export interface DashboardData {
   habits: {
@@ -50,4 +47,3 @@ export interface MotivationalQuote {
   author: string;
   category: string;
 }
-

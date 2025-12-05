@@ -6,7 +6,7 @@ export default async function Home() {
   // Verificar si el usuario está autenticado
   const cookieStore = await cookies();
   const token = cookieStore.get('auth-token')?.value;
-  
+
   let isAuthenticated = false;
   if (token) {
     const payload = await verifyToken(token);

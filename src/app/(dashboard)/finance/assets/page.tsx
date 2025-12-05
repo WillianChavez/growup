@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +41,7 @@ export default function AssetsPage() {
   const handleSave = async (data: AssetFormData) => {
     const url = editingAsset ? `/api/financial/assets/${editingAsset.id}` : '/api/financial/assets';
     const method = editingAsset ? 'PATCH' : 'POST';
-    
+
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -69,13 +69,17 @@ export default function AssetsPage() {
   };
 
   const totalAssets = assets.reduce((sum, a) => sum + a.value, 0);
-  const liquidAssets = assets.filter(a => a.type === 'liquid').reduce((sum, a) => sum + a.value, 0);
-  const illiquidAssets = assets.filter(a => a.type === 'illiquid').reduce((sum, a) => sum + a.value, 0);
+  const liquidAssets = assets
+    .filter((a) => a.type === 'liquid')
+    .reduce((sum, a) => sum + a.value, 0);
+  const illiquidAssets = assets
+    .filter((a) => a.type === 'illiquid')
+    .reduce((sum, a) => sum + a.value, 0);
 
   const chartData = [
     { name: 'Líquidos', value: liquidAssets, color: '#10b981' },
     { name: 'No Líquidos', value: illiquidAssets, color: '#3b82f6' },
-  ].filter(item => item.value > 0);
+  ].filter((item) => item.value > 0);
 
   const getCategoryIcon = (category: string) => {
     const icons: Record<string, string> = {
@@ -100,7 +104,13 @@ export default function AssetsPage() {
               Gestiona tu patrimonio y activos
             </p>
           </div>
-          <Button onClick={() => { setEditingAsset(undefined); setDialogOpen(true); }} className="w-full sm:w-auto">
+          <Button
+            onClick={() => {
+              setEditingAsset(undefined);
+              setDialogOpen(true);
+            }}
+            className="w-full sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Agregar Activo
           </Button>
@@ -182,7 +192,10 @@ export default function AssetsPage() {
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"
+                  />
                 ))}
               </div>
             ) : assets.length === 0 ? (
@@ -192,17 +205,25 @@ export default function AssetsPage() {
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {assets.map((asset) => (
-                  <div key={asset.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900">
+                  <div
+                    key={asset.id}
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2">
                         <span className="text-xl">{getCategoryIcon(asset.category)}</span>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium truncate">{asset.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <Badge variant={asset.type === 'liquid' ? 'default' : 'secondary'} className="text-xs">
+                            <Badge
+                              variant={asset.type === 'liquid' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
                               {asset.type === 'liquid' ? 'Líquido' : 'No Líquido'}
                             </Badge>
-                            <span className="font-bold text-blue-600 text-sm">${asset.value.toFixed(2)}</span>
+                            <span className="font-bold text-blue-600 text-sm">
+                              ${asset.value.toFixed(2)}
+                            </span>
                           </div>
                           {asset.description && (
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
@@ -217,7 +238,10 @@ export default function AssetsPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => { setEditingAsset(asset); setDialogOpen(true); }}
+                        onClick={() => {
+                          setEditingAsset(asset);
+                          setDialogOpen(true);
+                        }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -261,4 +285,3 @@ export default function AssetsPage() {
     </div>
   );
 }
-
