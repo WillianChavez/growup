@@ -36,15 +36,10 @@ function getPrismaClient(): PrismaClient {
     // PrismaLibSQL para Prisma 5.22.0
     const adapter = new PrismaLibSQL(libsqlClient);
 
-    // Type assertion needed: Prisma types don't fully support adapter in constructor
-    // This is a known limitation with Prisma 5.22.0 and driver adapters
-    const config = {
+    return new PrismaClient({
       ...baseConfig,
       adapter,
-    };
-
-    // @ts-expect-error - adapter property not in PrismaClient constructor types
-    return new PrismaClient(config);
+    });
   }
 
   // SQLite (file://) - conexión directa sin adapter
