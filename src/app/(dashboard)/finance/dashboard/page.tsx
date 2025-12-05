@@ -2,17 +2,57 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, TrendingDown, PiggyBank, CreditCard, Shield } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { DollarSign, TrendingDown, PiggyBank, CreditCard, Shield, TrendingUp } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  BarElement,
+  Filler,
+  Tooltip,
+  Legend,
+  type TooltipItem,
+} from 'chart.js';
+import { Line, Pie, Bar } from 'react-chartjs-2';
 import type { FinancialDashboardKPIs } from '@/types/financial.types';
+import type { MonthlyTransactionGroup } from '@/types/finance.types';
+import type { BudgetSummary } from '@/types/budget.types';
+import { formatCurrencyDisplay } from '@/lib/currency-utils';
+
+// Registrar componentes de Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  BarElement,
+  Filler,
+  Tooltip,
+  Legend
+);
 
 export default function FinancialDashboardPage() {
   const [kpis, setKpis] = useState<FinancialDashboardKPIs | null>(null);
+  const [monthlyData, setMonthlyData] = useState<MonthlyTransactionGroup[]>([]);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadKPIs();
+    loadMonthlyData();
+    loadBudgetSummary();
   }, []);
 
   const loadKPIs = async () => {
@@ -27,6 +67,31 @@ export default function FinancialDashboardPage() {
       console.error('Error loading KPIs:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMonthlyData = async () => {
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await fetch(`/api/transactions/monthly/${currentYear}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMonthlyData(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading monthly data:', error);
+    }
+  };
+
+  const loadBudgetSummary = async () => {
+    try {
+      const response = await fetch('/api/budget/summary');
+      if (response.ok) {
+        const data = await response.json();
+        setBudgetSummary(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading budget summary:', error);
     }
   };
 
@@ -59,11 +124,221 @@ export default function FinancialDashboardPage() {
 
   const solvencyStatus = getSolvencyStatus(kpis.solvencyRatio);
 
-  // Gráfico de activos líquidos vs no líquidos
-  const assetsChartData = [
-    { name: 'Activos Líquidos', value: kpis.liquidAssets, color: '#10b981' },
-    { name: 'Activos No Líquidos', value: kpis.illiquidAssets, color: '#3b82f6' },
-  ].filter((item) => item.value > 0);
+  // Preparar datos para el pie chart de activos con Chart.js
+  const pieChartJsData = {
+    labels: ['Activos Líquidos', 'Activos No Líquidos'],
+    datasets: [
+      {
+        data: [kpis.liquidAssets, kpis.illiquidAssets],
+        backgroundColor: ['#669bbc', '#003049'],
+        borderColor: ['#669bbc', '#003049'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const pieChartJsOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context: TooltipItem<'pie'>) {
+            const value = context.parsed;
+            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0) as number;
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+            return `${context.label}: ${formatCurrencyDisplay(value)} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
+
+  // Preparar datos para el gráfico de barras horizontal de presupuesto
+  const budgetChartData = budgetSummary
+    ? {
+        labels: budgetSummary.expensesByCategory
+          .filter((cat) => cat.amount > 0)
+          .map((cat) => cat.categoryName),
+        datasets: [
+          {
+            label: 'Gastos por Categoría',
+            data: budgetSummary.expensesByCategory
+              .filter((cat) => cat.amount > 0)
+              .map((cat) => cat.amount),
+            backgroundColor: budgetSummary.expensesByCategory
+              .filter((cat) => cat.amount > 0)
+              .map((cat) =>
+                cat.isEssential ? 'rgba(239, 68, 68, 0.8)' : 'rgba(59, 130, 246, 0.8)'
+              ),
+            borderColor: budgetSummary.expensesByCategory
+              .filter((cat) => cat.amount > 0)
+              .map((cat) => (cat.isEssential ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)')),
+            borderWidth: 1,
+          },
+        ],
+      }
+    : null;
+
+  const budgetChartOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context: TooltipItem<'bar'>) {
+            const value = context.parsed.x;
+            if (value === null || value === undefined) return '';
+            const total = budgetSummary?.totalMonthlyExpenses || 0;
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+            return `${formatCurrencyDisplay(value)} (${percentage}% del total)`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            size: 12,
+          },
+        },
+      },
+      y: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            size: 11,
+          },
+        },
+      },
+    },
+  };
+
+  // Preparar datos para el gráfico de barras apiladas (ingresos y gastos por mes)
+  const monthNames = [
+    'Ene',
+    'Feb',
+    'Mar',
+    'Abr',
+    'May',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dic',
+  ];
+
+  const currentYear = new Date().getFullYear();
+
+  // Crear un mapa de los datos existentes por mes
+  const dataByMonth = new Map<string, { income: number; expenses: number }>();
+  monthlyData.forEach((group) => {
+    if (group.year === currentYear) {
+      const monthKey = group.month; // 'yyyy-MM'
+      dataByMonth.set(monthKey, {
+        income: group.totalIncome,
+        expenses: group.totalExpenses,
+      });
+    }
+  });
+
+  // Crear datos para los 12 meses del año, rellenando con 0 si no hay datos
+  const areaChartData = Array.from({ length: 12 }, (_, index) => {
+    const monthNumber = index + 1;
+    const monthKey = `${currentYear}-${monthNumber.toString().padStart(2, '0')}`;
+    const data = dataByMonth.get(monthKey) || { income: 0, expenses: 0 };
+
+    return {
+      month: monthNames[index],
+      fullMonth: monthKey,
+      income: data.income,
+      expenses: data.expenses,
+    };
+  });
+
+  // Preparar datos para Chart.js
+  const chartJsData = {
+    labels: areaChartData.map((d) => d.month),
+    datasets: [
+      {
+        label: 'Gastos',
+        data: areaChartData.map((d) => d.expenses),
+        borderColor: 'hsl(0, 84%, 60%)',
+        backgroundColor: 'hsla(0, 84%, 60%, 0.4)',
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'Ingresos',
+        data: areaChartData.map((d) => d.income),
+        borderColor: 'hsl(142, 76%, 36%)',
+        backgroundColor: 'hsla(142, 76%, 36%, 0.4)',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartJsOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top' as const,
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        callbacks: {
+          label: function (context: TooltipItem<'line'>) {
+            const value = context.parsed.y;
+            if (value === null) return '';
+            return `${context.dataset.label}: ${formatCurrencyDisplay(value)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            size: 12,
+          },
+        },
+      },
+      y: {
+        grid: {
+          display: true,
+          color: 'rgba(0, 0, 0, 0.05)',
+        },
+        ticks: {
+          font: {
+            size: 12,
+          },
+        },
+      },
+    },
+  };
 
   return (
     <div className="space-y-6">
@@ -87,7 +362,7 @@ export default function FinancialDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ${kpis.monthlyIncome.toFixed(2)}
+              {formatCurrencyDisplay(kpis.monthlyIncome)}
             </div>
             <p className="text-xs text-slate-500 mt-1">Total de ingresos recurrentes</p>
           </CardContent>
@@ -101,7 +376,7 @@ export default function FinancialDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              ${kpis.monthlyExpenses.toFixed(2)}
+              {formatCurrencyDisplay(kpis.monthlyExpenses)}
             </div>
             <p className="text-xs text-slate-500 mt-1">
               {kpis.monthlyIncome > 0
@@ -119,7 +394,9 @@ export default function FinancialDashboardPage() {
             <CreditCard className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">${kpis.monthlyDebts.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrencyDisplay(kpis.monthlyDebts)}
+            </div>
             <p className="text-xs text-slate-500 mt-1">
               {kpis.monthlyIncome > 0
                 ? ((kpis.monthlyDebts / kpis.monthlyIncome) * 100).toFixed(1)
@@ -136,9 +413,11 @@ export default function FinancialDashboardPage() {
             <CreditCard className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">${kpis.totalDebt.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrencyDisplay(kpis.totalDebt)}
+            </div>
             <p className="text-xs text-slate-500 mt-1">
-              Consumo: ${kpis.consumptionDebtPayment.toFixed(2)}/mes
+              Consumo: {formatCurrencyDisplay(kpis.consumptionDebtPayment)}/mes
             </p>
           </CardContent>
         </Card>
@@ -150,7 +429,9 @@ export default function FinancialDashboardPage() {
             <PiggyBank className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">${kpis.totalAssets.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrencyDisplay(kpis.totalAssets)}
+            </div>
             <p className="text-xs text-slate-500 mt-1">
               {kpis.liquidAssetsPercentage.toFixed(1)}% líquidos
             </p>
@@ -176,33 +457,53 @@ export default function FinancialDashboardPage() {
 
       {/* Charts */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-        {/* Activos Líquidos vs No Líquidos */}
-        {assetsChartData.length > 0 && (
-          <Card>
-            <CardHeader>
+        {/* Pie Chart de Activos */}
+        {kpis.totalAssets > 0 && (
+          <Card className="flex flex-col">
+            <CardHeader className="items-center pb-0">
               <CardTitle>Distribución de Activos</CardTitle>
+              <CardDescription>Activos líquidos vs no líquidos</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={assetsChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
-                    outerRadius={80}
-                    dataKey="value"
-                  >
-                    {assetsChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+            <CardContent className="flex-1 pb-0">
+              <div className="mx-auto aspect-square max-h-[250px]">
+                <Pie data={pieChartJsData} options={pieChartJsOptions} />
+              </div>
             </CardContent>
+            <CardFooter className="flex-col gap-2 text-sm">
+              <div className="flex items-center gap-2 leading-none font-medium">
+                Activos totales: {formatCurrencyDisplay(kpis.totalAssets)}{' '}
+                <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="text-muted-foreground leading-none">
+                {kpis.liquidAssetsPercentage.toFixed(1)}% líquidos •{' '}
+                {kpis.illiquidAssetsPercentage.toFixed(1)}% no líquidos
+              </div>
+            </CardFooter>
+          </Card>
+        )}
+
+        {/* Gráfico de Presupuesto - Gastos por Categoría */}
+        {budgetSummary && budgetChartData && budgetSummary.expensesByCategory.length > 0 && (
+          <Card className="flex flex-col">
+            <CardHeader className="items-center pb-0">
+              <CardTitle>Gastos del Presupuesto</CardTitle>
+              <CardDescription>Distribución de gastos por categoría</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0">
+              <div className="h-[250px] w-full">
+                <Bar data={budgetChartData} options={budgetChartOptions} />
+              </div>
+            </CardContent>
+            <CardFooter className="flex-col gap-2 text-sm">
+              <div className="flex items-center gap-2 leading-none font-medium">
+                Total gastos: {formatCurrencyDisplay(budgetSummary.totalMonthlyExpenses)}/mes
+                <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="text-muted-foreground leading-none">
+                Balance disponible: {formatCurrencyDisplay(budgetSummary.availableBalance)} •{' '}
+                {budgetSummary.savingsRate.toFixed(1)}% ahorro
+              </div>
+            </CardFooter>
           </Card>
         )}
 
@@ -219,7 +520,7 @@ export default function FinancialDashboardPage() {
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{debt.type}</span>
                       <span className="text-slate-600 dark:text-slate-400">
-                        ${debt.amount.toFixed(2)} ({debt.percentage.toFixed(1)}%)
+                        {formatCurrencyDisplay(debt.amount)} ({debt.percentage.toFixed(1)}%)
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -230,7 +531,7 @@ export default function FinancialDashboardPage() {
                         />
                       </div>
                       <span className="text-xs text-slate-500 whitespace-nowrap">
-                        ${debt.monthlyPayment.toFixed(2)}/mes
+                        {formatCurrencyDisplay(debt.monthlyPayment)}/mes
                       </span>
                     </div>
                   </div>
@@ -240,6 +541,46 @@ export default function FinancialDashboardPage() {
           </Card>
         )}
       </div>
+
+      {/* Area Chart - Ingresos y Gastos por Mes */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ingresos y Gastos por Mes</CardTitle>
+          <CardDescription>
+            {currentYear} - Comparativa mensual de ingresos y gastos
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[350px] w-full">
+            <Line data={chartJsData} options={chartJsOptions} />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <div className="flex w-full items-start gap-2 text-sm">
+            <div className="grid gap-2">
+              <div className="flex flex-wrap items-center gap-2 leading-none font-medium">
+                <span>
+                  Total del año: Ingresos $
+                  {formatCurrencyDisplay(
+                    areaChartData.reduce((sum, d) => sum + d.income, 0)
+                  ).replace('$', '')}
+                </span>
+                <span>•</span>
+                <span>
+                  Gastos $
+                  {formatCurrencyDisplay(
+                    areaChartData.reduce((sum, d) => sum + d.expenses, 0)
+                  ).replace('$', '')}
+                </span>
+                <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="text-muted-foreground leading-none">
+                Comparativa de ingresos y gastos mensuales del año {currentYear}
+              </div>
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
 
       {/* Quick Links */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">

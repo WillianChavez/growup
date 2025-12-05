@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { TransactionCategorySelector } from '@/components/finance/category-selector';
 import type { Transaction, TransactionFormData, TransactionType } from '@/types/finance.types';
 import { cn } from '@/lib/utils';
+import { parseCurrencyInput } from '@/lib/currency-utils';
 
 interface TransactionDialogProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function TransactionDialog({
   onSave,
 }: TransactionDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [amountInput, setAmountInput] = useState<string>('');
   const [formData, setFormData] = useState<TransactionFormData>({
     type: 'expense',
     amount: 0,
@@ -56,9 +58,11 @@ export function TransactionDialog({
   // Actualizar formData cuando cambie la transacción, el tipo o se abra el diálogo
   useEffect(() => {
     if (open) {
+      const amount = transaction?.amount || 0;
+      setAmountInput(amount ? String(amount) : '');
       setFormData({
         type: transaction?.type || type || 'expense',
-        amount: transaction?.amount || 0,
+        amount,
         categoryId: transaction?.categoryId || '',
         description: transaction?.description || '',
         date: transaction?.date || new Date(),
@@ -74,9 +78,16 @@ export function TransactionDialog({
       return;
     }
 
+    // Validar y parsear el monto
+    const parsedAmount = parseCurrencyInput(amountInput);
+    if (parsedAmount <= 0) {
+      alert('Por favor ingresa un monto válido mayor a 0');
+      return;
+    }
+
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSave({ ...formData, amount: parsedAmount });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving transaction:', error);
@@ -130,15 +141,11 @@ export function TransactionDialog({
               id="amount"
               type="text"
               inputMode="decimal"
-              value={formData.amount || ''}
+              value={amountInput}
               onChange={(e) => {
-                const value = e.target.value;
-                // Permitir solo números y un punto decimal
-                if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                  setFormData({ ...formData, amount: value === '' ? 0 : parseFloat(value) || 0 });
-                }
+                setAmountInput(e.target.value);
               }}
-              placeholder="Ej: 100.50"
+              placeholder="Ej: 1000.50 o 1,000.50"
               required
             />
           </div>

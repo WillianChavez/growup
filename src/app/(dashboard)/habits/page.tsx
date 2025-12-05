@@ -22,7 +22,7 @@ export default function HabitsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [habitToDelete, setHabitToDelete] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const { fetchHabits, createHabit, updateHabit, deleteHabit, logEntry, isLoading } = useHabits();
+  const { fetchHabits, createHabit, updateHabit, deleteHabit, isLoading } = useHabits();
 
   const loadHabits = useCallback(async () => {
     const data = await fetchHabits(false);
@@ -59,11 +59,6 @@ export default function HabitsPage() {
       await loadHabits();
       setHabitToDelete(null);
     }
-  };
-
-  const handleToggleHabit = async (habitId: string, completed: boolean) => {
-    await logEntry(habitId, new Date(), completed);
-    await loadHabits();
   };
 
   return (
@@ -159,7 +154,7 @@ export default function HabitsPage() {
                   key={habit.id}
                   habit={habit}
                   index={index}
-                  onToggle={handleToggleHabit}
+                  onToggle={undefined}
                   onEdit={handleOpenDialog}
                   onDelete={handleDeleteHabit}
                 />

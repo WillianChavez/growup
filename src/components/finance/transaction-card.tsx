@@ -16,6 +16,7 @@ import {
 import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Transaction } from '@/types/finance.types';
 import { cn } from '@/lib/utils';
+import { formatCurrencyDisplay } from '@/lib/currency-utils';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -50,7 +51,8 @@ export function TransactionCard({ transaction, index, onEdit, onDelete }: Transa
                     isIncome ? 'text-green-600' : 'text-red-600'
                   )}
                 >
-                  {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  {isIncome ? '+' : '-'}
+                  {formatCurrencyDisplay(transaction.amount)}
                 </span>
               </div>
 
@@ -105,7 +107,8 @@ export function TransactionCard({ transaction, index, onEdit, onDelete }: Transa
                 <span
                   className={cn('font-bold text-lg', isIncome ? 'text-green-600' : 'text-red-600')}
                 >
-                  {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  {isIncome ? '+' : '-'}
+                  {formatCurrencyDisplay(transaction.amount)}
                 </span>
 
                 <DropdownMenu>

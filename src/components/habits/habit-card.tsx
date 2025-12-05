@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 interface HabitCardProps {
   habit: Habit;
   index: number;
-  onToggle: (habitId: string, completed: boolean) => void;
+  onToggle?: (habitId: string, completed: boolean) => void;
   onEdit: (habit: Habit) => void;
   onDelete: (habitId: string) => void;
 }
@@ -27,6 +27,7 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
   const [isCompleted, setIsCompleted] = useState(false);
 
   const handleToggle = async () => {
+    if (!onToggle) return;
     const newState = !isCompleted;
     setIsCompleted(newState);
     onToggle(habit.id, newState);
@@ -54,23 +55,25 @@ export function HabitCard({ habit, index, onToggle, onEdit, onDelete }: HabitCar
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn(
-                  'transition-all',
-                  isCompleted
-                    ? 'text-green-600 bg-green-50 hover:bg-green-100'
-                    : 'text-slate-400 hover:text-green-600'
-                )}
-                onClick={handleToggle}
-              >
-                {isCompleted ? (
-                  <CheckCircle2 className="h-6 w-6" />
-                ) : (
-                  <Circle className="h-6 w-6" />
-                )}
-              </Button>
+              {onToggle && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    'transition-all',
+                    isCompleted
+                      ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                      : 'text-slate-400 hover:text-green-600'
+                  )}
+                  onClick={handleToggle}
+                >
+                  {isCompleted ? (
+                    <CheckCircle2 className="h-6 w-6" />
+                  ) : (
+                    <Circle className="h-6 w-6" />
+                  )}
+                </Button>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

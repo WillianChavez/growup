@@ -23,28 +23,27 @@ const DATE_FIELDS_BY_MODEL: Record<string, string[]> = {
 
 /**
  * Convierte una fecha de zona horaria del usuario a UTC para guardar
- * La fecha viene en la zona horaria del usuario y se convierte al inicio del día en UTC
+ * Mantiene la hora exacta, solo convierte la zona horaria
  */
 function convertToUTC(date: Date, timezone: string): Date {
   if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
     return date;
   }
   // La fecha viene en la zona horaria del usuario
-  // Convertirla al inicio del día en esa zona horaria y luego a UTC
+  // Convertirla a UTC manteniendo la hora exacta
   const zonedDate = toZonedTime(date, timezone);
-  const startOfDay = new Date(zonedDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  return fromZonedTime(startOfDay, timezone);
+  return fromZonedTime(zonedDate, timezone);
 }
 
 /**
  * Convierte una fecha de UTC a zona horaria del usuario
+ * Mantiene la hora exacta, solo convierte la zona horaria
  */
 function convertFromUTC(date: Date, timezone: string): Date {
   if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
     return date;
   }
-  // Convertir de UTC a la zona horaria del usuario
+  // Convertir de UTC a la zona horaria del usuario manteniendo la hora exacta
   return toZonedTime(date, timezone);
 }
 

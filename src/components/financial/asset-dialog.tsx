@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { Asset, AssetFormData, AssetType, AssetCategory } from '@/types/financial.types';
+import { parseCurrencyInput } from '@/lib/currency-utils';
 
 interface AssetDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ interface AssetDialogProps {
 
 export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [valueInput, setValueInput] = useState<string>('');
   const [formData, setFormData] = useState<AssetFormData>({
     name: '',
     value: 0,
@@ -42,9 +44,11 @@ export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogPr
 
   useEffect(() => {
     if (open) {
+      const value = asset?.value || 0;
+      setValueInput(value ? String(value) : '');
       setFormData({
         name: asset?.name || '',
-        value: asset?.value || 0,
+        value,
         type: asset?.type || 'liquid',
         category: asset?.category || 'cash',
         description: asset?.description || '',
@@ -55,9 +59,17 @@ export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar y parsear el valor
+    const parsedValue = parseCurrencyInput(valueInput);
+    if (parsedValue <= 0) {
+      alert('Por favor ingresa un valor válido mayor a 0');
+      return;
+    }
+
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSave({ ...formData, value: parsedValue });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving asset:', error);
@@ -94,14 +106,11 @@ export function AssetDialog({ open, onOpenChange, asset, onSave }: AssetDialogPr
               id="value"
               type="text"
               inputMode="decimal"
-              value={formData.value || ''}
+              value={valueInput}
               onChange={(e) => {
-                const value = e.target.value;
-                if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                  setFormData({ ...formData, value: value === '' ? 0 : parseFloat(value) || 0 });
-                }
+                setValueInput(e.target.value);
               }}
-              placeholder="Ej: 5000.00"
+              placeholder="Ej: 5000 o 5,000.00"
               required
             />
           </div>

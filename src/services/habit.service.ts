@@ -15,8 +15,9 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
+  isSameDay,
 } from 'date-fns';
-import { getDayRangeInTimezone, normalizeDateToUserTimezone } from '@/lib/date-timezone';
+import { getDayRangeInTimezone } from '@/lib/date-timezone';
 
 export class HabitService {
   static async create(
@@ -108,20 +109,15 @@ export class HabitService {
   static async logEntry(
     habitId: string,
     userId: string,
-    date: Date,
+    date: Date, // Date viene en la zona horaria del usuario
     completed: boolean,
     notes?: string
   ): Promise<HabitEntry> {
-    // Obtener la zona horaria del usuario para buscar el rango del día
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { timezone: true },
-    });
-    const timezone = user?.timezone || 'America/El_Salvador';
-
-    // Obtener el rango del día en la zona horaria del usuario
+    // Usar la fecha tal cual (con la hora actual) cuando se marca el hábito
     // El middleware convertirá automáticamente a UTC al guardar
-    const { start: dayStart, end: dayEnd } = getDayRangeInTimezone(date, timezone);
+    // Para buscar entradas existentes del mismo día, usamos un rango del día
+    const dayStart = startOfDay(date);
+    const dayEnd = endOfDay(date);
 
     // Buscar entrada existente para este día
     // El middleware convertirá automáticamente las fechas en el where
@@ -149,11 +145,12 @@ export class HabitService {
     }
 
     // El middleware convertirá date automáticamente a UTC al guardar
+    // Guardamos la fecha con la hora actual, no normalizada a 00:00
     return prisma.habitEntry.create({
       data: {
         habitId,
         userId,
-        date: dayStart, // El middleware lo convertirá a UTC
+        date: date, // Guardar con la hora actual, el middleware lo convertirá a UTC
         completed,
         notes,
         completedAt: completed ? new Date() : null, // El middleware lo convertirá a UTC
@@ -213,23 +210,26 @@ export class HabitService {
     const entryMap = new Map(entries.map((e) => [e.habitId, e]));
 
     // Calcular estadísticas semanales para cada hábito
-    const normalizedDate = normalizeDateToUserTimezone(date, timezone);
-    const weekStart = startOfWeek(normalizedDate, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(normalizedDate, { weekStartsOn: 1 });
+    // La fecha ya está en la zona horaria del usuario (convertida por el middleware)
+    // Calcular el inicio y fin de la semana (lunes 00:00 a domingo 23:59)
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Lunes
+    const weekEnd = endOfWeek(date, { weekStartsOn: 1 }); // Domingo
 
-    // Convertir el rango de la semana - el middleware convertirá automáticamente
-    const weekStartZoned = new Date(weekStart);
-    weekStartZoned.setHours(0, 0, 0, 0);
-    const weekEndZoned = new Date(weekEnd);
-    weekEndZoned.setHours(23, 59, 59, 999);
+    // Asegurar que el inicio de la semana sea lunes 00:00:00
+    const weekStartNormalized = new Date(weekStart);
+    weekStartNormalized.setHours(0, 0, 0, 0);
 
-    // El middleware convertirá automáticamente estas fechas
+    // Asegurar que el fin de la semana sea domingo 23:59:59.999
+    const weekEndNormalized = new Date(weekEnd);
+    weekEndNormalized.setHours(23, 59, 59, 999);
+
+    // El middleware convertirá automáticamente estas fechas de zona horaria del usuario a UTC
     const weeklyEntries = await prisma.habitEntry.findMany({
       where: {
         userId,
         date: {
-          gte: weekStartZoned,
-          lte: weekEndZoned,
+          gte: weekStartNormalized,
+          lte: weekEndNormalized,
         },
       },
     });
@@ -243,17 +243,13 @@ export class HabitService {
       weeklyEntriesByHabit.get(entry.habitId)!.push(entry);
     });
 
-    // Calcular cuántos días han pasado de la semana (incluyendo hoy)
-    const daysSinceWeekStart =
-      Math.floor((normalizedDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
     return {
-      date: normalizedDate,
+      date: date, // La fecha ya está en la zona horaria del usuario
       habits: habits.map((habit) => {
         const habitWeeklyEntries = weeklyEntriesByHabit.get(habit.id) || [];
         const weeklyCompleted = habitWeeklyEntries.filter((e) => e.completed).length;
-        const weeklyTotal = daysSinceWeekStart;
-        const weeklyPercentage = weeklyTotal > 0 ? (weeklyCompleted / weeklyTotal) * 100 : 0;
+        const weeklyTotal = 7; // Siempre 7 días en una semana
+        const weeklyPercentage = (weeklyCompleted / weeklyTotal) * 100;
 
         return {
           habit,
@@ -268,12 +264,14 @@ export class HabitService {
 
   // Monthly data para el calendario
   static async getMonthlyData(userId: string, date: Date): Promise<MonthlyHabitData[]> {
+    // `date` ya está en la zona horaria del usuario
     const monthStart = startOfMonth(date);
     const monthEnd = endOfMonth(date);
 
     const habits = await this.findAllByUser(userId, false);
     const habitIds = habits.map((h) => h.id);
 
+    // El middleware convierte las fechas de UTC a la zona horaria del usuario
     const entries = await prisma.habitEntry.findMany({
       where: {
         userId,
@@ -289,15 +287,9 @@ export class HabitService {
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     return days.map((day) => {
-      // Normalizar el día para comparación
-      const normalizedDay = new Date(day);
-      normalizedDay.setUTCHours(0, 0, 0, 0);
-      const normalizedDayTime = normalizedDay.getTime();
-
+      // Usar isSameDay para comparar fechas correctamente (ya están en zona horaria del usuario)
       const dayEntries = entries.filter((e) => {
-        const entryDate = new Date(e.date);
-        entryDate.setUTCHours(0, 0, 0, 0);
-        return entryDate.getTime() === normalizedDayTime;
+        return isSameDay(new Date(e.date), day);
       });
 
       const habitDetails = habits.map((habit) => {
@@ -310,7 +302,7 @@ export class HabitService {
       });
 
       return {
-        date: normalizedDay,
+        date: day, // Usar el día directamente (ya está en zona horaria del usuario)
         completedCount: dayEntries.filter((e) => e.completed).length,
         totalCount: habits.length,
         habits: habitDetails,

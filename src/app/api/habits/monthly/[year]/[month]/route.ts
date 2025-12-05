@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HabitService } from '@/services/habit.service';
-import { verifyToken } from '@/lib/jwt';
+import { withUserContext } from '@/lib/api-context-helper';
 import type { ApiResponse } from '@/types/api.types';
 
 export async function GET(
@@ -8,22 +8,6 @@ export async function GET(
   context: { params: Promise<{ year: string; month: string }> }
 ) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No autenticado' },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
     const params = await context.params;
     const year = parseInt(params.year);
     const month = parseInt(params.month);
@@ -35,8 +19,18 @@ export async function GET(
       );
     }
 
-    const date = new Date(year, month - 1, 1);
-    const monthlyData = await HabitService.getMonthlyData(payload.userId, date);
+    // Crear fecha en la zona horaria del usuario (será convertida por el middleware)
+    const date = new Date(year, month - 1, 1, 12, 0, 0, 0); // Usar mediodía para evitar problemas de zona horaria
+
+    // Ejecutar con contexto de usuario para que el middleware convierta fechas automáticamente
+    const monthlyData = await withUserContext(request, async (userContext) => {
+      return await HabitService.getMonthlyData(userContext.userId, date);
+    });
+
+    // Si withUserContext devuelve una respuesta de error (NextResponse), retornarla directamente
+    if (monthlyData instanceof NextResponse) {
+      return monthlyData;
+    }
 
     return NextResponse.json<ApiResponse>({
       success: true,

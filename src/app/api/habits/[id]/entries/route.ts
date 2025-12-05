@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HabitService } from '@/services/habit.service';
 import { withUserContext } from '@/lib/api-context-helper';
+import { toZonedTime } from 'date-fns-tz';
 import type { ApiResponse } from '@/types/api.types';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,10 +20,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Ejecutar con contexto de usuario para que el middleware convierta fechas automáticamente
     const entry = await withUserContext(request, async (userContext) => {
+      // La fecha viene como ISO string desde el frontend (ej: "2025-12-04T12:00:00.000Z")
+      // JavaScript la interpreta como UTC, pero necesitamos tratarla como fecha en la zona horaria del usuario
+      // Para esto, parseamos la fecha ISO y la convertimos a la zona horaria del usuario
+      const dateObj = new Date(date);
+      // Extraer año, mes y día de la fecha ISO (que está en UTC)
+      const year = dateObj.getUTCFullYear();
+      const month = dateObj.getUTCMonth();
+      const day = dateObj.getUTCDate();
+
+      // Crear una fecha "naive" (sin zona horaria) con esos componentes
+      // y luego convertirla a la zona horaria del usuario usando toZonedTime
+      const naiveDate = new Date(year, month, day, 12, 0, 0, 0);
+      // Convertir a la zona horaria del usuario (esto crea una fecha que representa el mismo día en la zona horaria del usuario)
+      const userDate = toZonedTime(naiveDate, userContext.timezone);
+
       return await HabitService.logEntry(
         id, // habitId primero
         userContext.userId, // userId segundo
-        new Date(date),
+        userDate,
         completed ?? false,
         notes
       );

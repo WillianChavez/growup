@@ -26,6 +26,7 @@ import type {
   ExpenseFrequency,
   ExpenseCategory,
 } from '@/types/budget.types';
+import { parseCurrencyInput } from '@/lib/currency-utils';
 
 interface RecurringExpenseDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ export function RecurringExpenseDialog({
   onSave,
 }: RecurringExpenseDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [amountInput, setAmountInput] = useState<string>('');
   const [formData, setFormData] = useState<RecurringExpenseFormData>({
     name: '',
     amount: 0,
@@ -51,9 +53,11 @@ export function RecurringExpenseDialog({
 
   useEffect(() => {
     if (open) {
+      const amount = expense?.amount || 0;
+      setAmountInput(amount ? String(amount) : '');
       setFormData({
         name: expense?.name || '',
-        amount: expense?.amount || 0,
+        amount,
         frequency: expense?.frequency || 'monthly',
         category: expense?.category || 'utilities',
         isEssential: expense?.isEssential || true,
@@ -63,9 +67,17 @@ export function RecurringExpenseDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar y parsear el monto
+    const parsedAmount = parseCurrencyInput(amountInput);
+    if (parsedAmount <= 0) {
+      alert('Por favor ingresa un monto válido mayor a 0');
+      return;
+    }
+
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSave({ ...formData, amount: parsedAmount });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving recurring expense:', error);
@@ -105,14 +117,11 @@ export function RecurringExpenseDialog({
                 id="amount"
                 type="text"
                 inputMode="decimal"
-                value={formData.amount || ''}
+                value={amountInput}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({ ...formData, amount: value === '' ? 0 : parseFloat(value) || 0 });
-                  }
+                  setAmountInput(e.target.value);
                 }}
-                placeholder="50"
+                placeholder="Ej: 50 o 50.00"
                 required
               />
             </div>

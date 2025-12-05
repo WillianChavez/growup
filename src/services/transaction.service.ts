@@ -96,7 +96,7 @@ export class TransactionService {
     })) as Transaction[];
   }
 
-  // Agrupar transacciones por mes
+  // Agrupar transacciones por mes - incluyendo las transacciones completas
   static async getGroupedByMonth(
     userId: string,
     year?: number
@@ -105,21 +105,34 @@ export class TransactionService {
     const yearStart = startOfYear(new Date(currentYear, 0, 1));
     const yearEnd = endOfYear(new Date(currentYear, 11, 31));
 
-    const transactions = await this.findAllByUser(userId, {
-      startDate: yearStart,
-      endDate: yearEnd,
+    // Obtener todas las transacciones con sus categorías
+    // El middleware convertirá las fechas automáticamente
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        date: {
+          gte: yearStart,
+          lte: yearEnd,
+        },
+      },
+      include: {
+        category: true,
+      },
+      orderBy: { date: 'desc' },
     });
 
-    // Agrupar por mes
+    // Agrupar por mes usando los datos ya filtrados
+    // Las fechas ya están en la zona horaria del usuario gracias al middleware
     const monthlyGroups: Record<string, MonthlyTransactionGroup> = {};
 
     transactions.forEach((t) => {
       const monthKey = format(t.date, 'yyyy-MM');
+      const transactionYear = t.date.getFullYear();
 
       if (!monthlyGroups[monthKey]) {
         monthlyGroups[monthKey] = {
-          month: monthKey, // Cambiado a formato 'yyyy-MM'
-          year: t.date.getFullYear(),
+          month: monthKey,
+          year: transactionYear,
           transactions: [],
           totalIncome: 0,
           totalExpenses: 0,
@@ -127,8 +140,14 @@ export class TransactionService {
         };
       }
 
-      monthlyGroups[monthKey].transactions.push(t);
+      // Agregar la transacción completa al grupo
+      const transaction: Transaction = {
+        ...t,
+        tags: t.tags ? JSON.parse(t.tags) : null,
+      } as Transaction;
+      monthlyGroups[monthKey].transactions.push(transaction);
 
+      // Calcular totales
       if (t.type === 'income') {
         monthlyGroups[monthKey].totalIncome += t.amount;
       } else {
@@ -141,7 +160,10 @@ export class TransactionService {
       group.balance = group.totalIncome - group.totalExpenses;
     });
 
-    return Object.values(monthlyGroups).sort((a, b) => b.year - a.year);
+    return Object.values(monthlyGroups).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month.localeCompare(b.month);
+    });
   }
 
   static async update(

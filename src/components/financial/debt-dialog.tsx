@@ -26,6 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Debt, DebtFormData, DebtType } from '@/types/financial.types';
 import { cn } from '@/lib/utils';
+import { parseCurrencyInput } from '@/lib/currency-utils';
 
 interface DebtDialogProps {
   open: boolean;
@@ -36,6 +37,9 @@ interface DebtDialogProps {
 
 export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [totalAmountInput, setTotalAmountInput] = useState<string>('');
+  const [remainingAmountInput, setRemainingAmountInput] = useState<string>('');
+  const [monthlyPaymentInput, setMonthlyPaymentInput] = useState<string>('');
   const [formData, setFormData] = useState<DebtFormData>({
     creditor: '',
     totalAmount: 0,
@@ -48,11 +52,17 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
 
   useEffect(() => {
     if (open) {
+      const totalAmount = debt?.totalAmount || 0;
+      const remainingAmount = debt?.remainingAmount || 0;
+      const monthlyPayment = debt?.monthlyPayment || 0;
+      setTotalAmountInput(totalAmount ? String(totalAmount) : '');
+      setRemainingAmountInput(remainingAmount ? String(remainingAmount) : '');
+      setMonthlyPaymentInput(monthlyPayment ? String(monthlyPayment) : '');
       setFormData({
         creditor: debt?.creditor || '',
-        totalAmount: debt?.totalAmount || 0,
-        remainingAmount: debt?.remainingAmount || 0,
-        monthlyPayment: debt?.monthlyPayment || 0,
+        totalAmount,
+        remainingAmount,
+        monthlyPayment,
         annualRate: debt?.annualRate || 0,
         type: debt?.type || 'consumption',
         description: debt?.description || '',
@@ -64,9 +74,33 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar y parsear los montos
+    const parsedTotalAmount = parseCurrencyInput(totalAmountInput);
+    const parsedRemainingAmount = parseCurrencyInput(remainingAmountInput);
+    const parsedMonthlyPayment = parseCurrencyInput(monthlyPaymentInput);
+
+    if (parsedTotalAmount <= 0) {
+      alert('Por favor ingresa un monto total válido mayor a 0');
+      return;
+    }
+    if (parsedRemainingAmount <= 0) {
+      alert('Por favor ingresa un monto restante válido mayor a 0');
+      return;
+    }
+    if (parsedMonthlyPayment <= 0) {
+      alert('Por favor ingresa un pago mensual válido mayor a 0');
+      return;
+    }
+
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSave({
+        ...formData,
+        totalAmount: parsedTotalAmount,
+        remainingAmount: parsedRemainingAmount,
+        monthlyPayment: parsedMonthlyPayment,
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving debt:', error);
@@ -104,17 +138,11 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 id="totalAmount"
                 type="text"
                 inputMode="decimal"
-                value={formData.totalAmount || ''}
+                value={totalAmountInput}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({
-                      ...formData,
-                      totalAmount: value === '' ? 0 : parseFloat(value) || 0,
-                    });
-                  }
+                  setTotalAmountInput(e.target.value);
                 }}
-                placeholder="10000"
+                placeholder="Ej: 10000 o 10,000.00"
                 required
               />
             </div>
@@ -125,17 +153,11 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 id="remainingAmount"
                 type="text"
                 inputMode="decimal"
-                value={formData.remainingAmount || ''}
+                value={remainingAmountInput}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({
-                      ...formData,
-                      remainingAmount: value === '' ? 0 : parseFloat(value) || 0,
-                    });
-                  }
+                  setRemainingAmountInput(e.target.value);
                 }}
-                placeholder="8000"
+                placeholder="Ej: 8000 o 8,000.00"
                 required
               />
             </div>
@@ -148,17 +170,11 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                 id="monthlyPayment"
                 type="text"
                 inputMode="decimal"
-                value={formData.monthlyPayment || ''}
+                value={monthlyPaymentInput}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setFormData({
-                      ...formData,
-                      monthlyPayment: value === '' ? 0 : parseFloat(value) || 0,
-                    });
-                  }
+                  setMonthlyPaymentInput(e.target.value);
                 }}
-                placeholder="500"
+                placeholder="Ej: 500 o 500.00"
                 required
               />
             </div>
