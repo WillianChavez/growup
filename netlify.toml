@@ -1,15 +1,24 @@
 [build]
-  command = "pnpm run build"
+  command = "pnpm run netlify-build"
   publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  # Configuración del plugin
+  [plugins.inputs]
+    functions_dir = ".netlify/functions-internal"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--force"
+  # Asegurar que las variables de entorno estén disponibles
+  SKIP_ENV_VALIDATION = "true"
 
 # Evitar errores de Prisma en el build
 [build.processing]
   skip_processing = false
+
+# Configuración para funciones serverless
+[functions]
+  node_bundler = "esbuild"
 

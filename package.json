@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit",
     "prepare": "husky",
     "postinstall": "prisma generate",
+    "netlify-build": "prisma generate && next build",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "prisma:push": "prisma db push",
