@@ -16,6 +16,7 @@ import {
   endOfWeek,
   eachDayOfInterval,
 } from 'date-fns';
+import { getDayRangeInTimezone, normalizeDateToUserTimezone } from '@/lib/date-timezone';
 
 export class HabitService {
   static async create(
@@ -103,6 +104,7 @@ export class HabitService {
   }
 
   // Entry management
+  // El middleware de Prisma se encarga automáticamente de convertir fechas
   static async logEntry(
     habitId: string,
     userId: string,
@@ -110,19 +112,32 @@ export class HabitService {
     completed: boolean,
     notes?: string
   ): Promise<HabitEntry> {
-    // Normalizar la fecha al inicio del día en UTC para consistencia
-    const normalizedDate = new Date(date);
-    normalizedDate.setUTCHours(0, 0, 0, 0);
+    // Obtener la zona horaria del usuario para buscar el rango del día
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    const timezone = user?.timezone || 'America/El_Salvador';
 
+    // Obtener el rango del día en la zona horaria del usuario
+    // El middleware convertirá automáticamente a UTC al guardar
+    const { start: dayStart, end: dayEnd } = getDayRangeInTimezone(date, timezone);
+
+    // Buscar entrada existente para este día
+    // El middleware convertirá automáticamente las fechas en el where
     const existing = await prisma.habitEntry.findFirst({
       where: {
         habitId,
         userId,
-        date: normalizedDate,
+        date: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
       },
     });
 
     if (existing) {
+      // El middleware convertirá completedAt automáticamente a UTC
       return prisma.habitEntry.update({
         where: { id: existing.id },
         data: {
@@ -133,14 +148,15 @@ export class HabitService {
       }) as Promise<HabitEntry>;
     }
 
+    // El middleware convertirá date automáticamente a UTC al guardar
     return prisma.habitEntry.create({
       data: {
         habitId,
         userId,
-        date: normalizedDate,
+        date: dayStart, // El middleware lo convertirá a UTC
         completed,
         notes,
-        completedAt: completed ? new Date() : null,
+        completedAt: completed ? new Date() : null, // El middleware lo convertirá a UTC
       },
     }) as Promise<HabitEntry>;
   }
@@ -166,35 +182,54 @@ export class HabitService {
   }
 
   // Daily view - todos los hábitos del día con su estado
+  // El middleware de Prisma se encarga automáticamente de convertir fechas
   static async getDailyView(userId: string, date: Date): Promise<DailyHabitView> {
-    // Normalizar la fecha al inicio del día en UTC
-    const normalizedDate = new Date(date);
-    normalizedDate.setUTCHours(0, 0, 0, 0);
+    // Obtener la zona horaria del usuario
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    const timezone = user?.timezone || 'America/El_Salvador';
+
+    // Obtener el rango del día en la zona horaria del usuario
+    // El middleware convertirá automáticamente a UTC para buscar
+    const { start: dayStart, end: dayEnd } = getDayRangeInTimezone(date, timezone);
 
     const habits = await this.findAllByUser(userId, false);
 
-    // Buscar entradas exactamente para esta fecha normalizada
+    // Buscar entradas - el middleware convertirá automáticamente:
+    // - Las fechas en where de zona horaria del usuario a UTC para buscar
+    // - Los resultados de UTC a zona horaria del usuario
     const entries = await prisma.habitEntry.findMany({
       where: {
         userId,
-        date: normalizedDate,
+        date: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
       },
     });
 
     const entryMap = new Map(entries.map((e) => [e.habitId, e]));
 
     // Calcular estadísticas semanales para cada hábito
+    const normalizedDate = normalizeDateToUserTimezone(date, timezone);
     const weekStart = startOfWeek(normalizedDate, { weekStartsOn: 1 });
-    // weekEnd se usa para calcular el rango de la semana
-    endOfWeek(normalizedDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(normalizedDate, { weekStartsOn: 1 });
 
-    // Obtener todas las entradas de la semana
+    // Convertir el rango de la semana - el middleware convertirá automáticamente
+    const weekStartZoned = new Date(weekStart);
+    weekStartZoned.setHours(0, 0, 0, 0);
+    const weekEndZoned = new Date(weekEnd);
+    weekEndZoned.setHours(23, 59, 59, 999);
+
+    // El middleware convertirá automáticamente estas fechas
     const weeklyEntries = await prisma.habitEntry.findMany({
       where: {
         userId,
         date: {
-          gte: weekStart,
-          lte: normalizedDate, // Solo hasta el día actual
+          gte: weekStartZoned,
+          lte: weekEndZoned,
         },
       },
     });

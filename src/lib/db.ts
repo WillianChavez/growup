@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaLibSQL } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
+import { createTimezoneMiddleware } from './prisma-timezone-middleware';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -20,6 +21,8 @@ function getPrismaClient(): PrismaClient {
   // Detectar si es Turso basándose en la URL (libsql:// o turso://)
   const isTurso = databaseUrl.startsWith('libsql://') || databaseUrl.startsWith('turso://');
 
+  let client: PrismaClient;
+
   if (isTurso) {
     // Para Turso, necesitamos el token de autenticación
     const tursoToken = process.env.TURSO_AUTH_TOKEN;
@@ -36,14 +39,19 @@ function getPrismaClient(): PrismaClient {
     // PrismaLibSQL para Prisma 5.22.0
     const adapter = new PrismaLibSQL(libsqlClient);
 
-    return new PrismaClient({
+    client = new PrismaClient({
       ...baseConfig,
       adapter,
     });
+  } else {
+    // SQLite (file://) - conexión directa sin adapter
+    client = new PrismaClient(baseConfig);
   }
 
-  // SQLite (file://) - conexión directa sin adapter
-  return new PrismaClient(baseConfig);
+  // Agregar middleware de timezone
+  client.$use(createTimezoneMiddleware());
+
+  return client;
 }
 
 export const prisma = globalForPrisma.prisma ?? getPrismaClient();

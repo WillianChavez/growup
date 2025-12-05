@@ -35,7 +35,8 @@ export function MonthlyCalendar() {
       setMonthlyData(data);
     };
     void loadMonthlyData();
-  }, [currentMonth, fetchMonthlyData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth]);
 
   const goToPrevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));

@@ -1,30 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HabitService } from '@/services/habit.service';
-import { verifyToken } from '@/lib/jwt';
+import { withUserContext } from '@/lib/api-context-helper';
 import type { ApiResponse } from '@/types/api.types';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ date: string }> }) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No autenticado' },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
     const params = await context.params;
-    // Parsear la fecha como UTC para evitar problemas de zona horaria
+    // Parsear la fecha como fecha local (será normalizada según la zona horaria del usuario)
     const [year, month, day] = params.date.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0); // Usar mediodía para evitar problemas de zona horaria
 
     if (isNaN(date.getTime())) {
       return NextResponse.json<ApiResponse>(
@@ -33,7 +17,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ dat
       );
     }
 
-    const dailyView = await HabitService.getDailyView(payload.userId, date);
+    // Ejecutar con contexto de usuario para que el middleware convierta fechas automáticamente
+    const dailyView = await withUserContext(request, async (userContext) => {
+      return await HabitService.getDailyView(userContext.userId, date);
+    });
+
+    if (!dailyView) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
 
     return NextResponse.json<ApiResponse>({
       success: true,

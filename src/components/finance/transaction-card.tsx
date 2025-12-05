@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Transaction } from '@/types/finance.types';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ interface TransactionCardProps {
 
 export function TransactionCard({ transaction, index, onEdit, onDelete }: TransactionCardProps) {
   const isIncome = transaction.type === 'income';
+  const isMobile = useIsMobile();
 
   return (
     <motion.div
@@ -34,69 +36,105 @@ export function TransactionCard({ transaction, index, onEdit, onDelete }: Transa
     >
       <Card className="group hover:shadow-md transition-all">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              {/* Icon */}
-              <div
-                className={cn(
-                  'rounded-full p-2',
-                  isIncome ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                )}
-              >
-                {isIncome ? (
-                  <ArrowUpCircle className="h-5 w-5" />
-                ) : (
-                  <ArrowDownCircle className="h-5 w-5" />
-                )}
-              </div>
-
-              {/* Details */}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-900 dark:text-white truncate">
+          {isMobile ? (
+            /* Mobile Layout: Name + Amount on line 1, Category + Date on line 2 */
+            <div className="space-y-2">
+              {/* Line 1: Name and Amount */}
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-slate-900 dark:text-white flex-1 truncate">
                   {transaction.description}
                 </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className="text-xs flex items-center gap-1">
-                    <span>{transaction.category?.emoji || '💰'}</span>
-                    <span>{transaction.category?.name || 'Sin categoría'}</span>
-                  </Badge>
-                  <span className="text-xs text-slate-500">
-                    {format(new Date(transaction.date), 'dd MMM yyyy', { locale: es })}
-                  </span>
-                </div>
+                <span
+                  className={cn(
+                    'font-bold text-base shrink-0',
+                    isIncome ? 'text-green-600' : 'text-red-600'
+                  )}
+                >
+                  {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Line 2: Category and Date */}
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                  <span>{transaction.category?.emoji || '💰'}</span>
+                  <span>{transaction.category?.name || 'Sin categoría'}</span>
+                </Badge>
+                <span className="text-xs text-slate-500 shrink-0">
+                  {format(new Date(transaction.date), 'dd MMM yyyy', { locale: es })}
+                </span>
               </div>
             </div>
+          ) : (
+            /* Desktop Layout: Original layout */
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1">
+                {/* Icon */}
+                <div
+                  className={cn(
+                    'rounded-full p-2',
+                    isIncome ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                  )}
+                >
+                  {isIncome ? (
+                    <ArrowUpCircle className="h-5 w-5" />
+                  ) : (
+                    <ArrowDownCircle className="h-5 w-5" />
+                  )}
+                </div>
 
-            {/* Amount and Actions */}
-            <div className="flex items-center gap-3">
-              <span
-                className={cn('font-bold text-lg', isIncome ? 'text-green-600' : 'text-red-600')}
-              >
-                {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
-              </span>
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-900 dark:text-white truncate">
+                    {transaction.description}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <span>{transaction.category?.emoji || '💰'}</span>
+                      <span>{transaction.category?.name || 'Sin categoría'}</span>
+                    </Badge>
+                    <span className="text-xs text-slate-500">
+                      {format(new Date(transaction.date), 'dd MMM yyyy', { locale: es })}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEdit(transaction)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => onDelete(transaction.id)}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Eliminar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Amount and Actions */}
+              <div className="flex items-center gap-3">
+                <span
+                  className={cn('font-bold text-lg', isIncome ? 'text-green-600' : 'text-red-600')}
+                >
+                  {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
+                </span>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="opacity-0 group-hover:opacity-100"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onDelete(transaction.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

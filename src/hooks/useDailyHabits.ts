@@ -26,15 +26,16 @@ export function useDailyHabits() {
   const toggleHabit = async (habitId: string, date: Date, completed: boolean): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Normalizar la fecha a UTC para consistencia
-      const normalizedDate = new Date(date);
-      normalizedDate.setUTCHours(0, 0, 0, 0);
+      // Enviar la fecha tal cual - el backend la normalizará según la zona horaria del usuario
+      // Usar mediodía para evitar problemas de zona horaria al parsear
+      const dateToSend = new Date(date);
+      dateToSend.setHours(12, 0, 0, 0);
 
       const response = await fetch(`/api/habits/${habitId}/entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date: normalizedDate.toISOString(),
+          date: dateToSend.toISOString(),
           completed,
         }),
       });

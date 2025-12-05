@@ -2,15 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, DollarSign, Receipt, Edit, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, Receipt, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { BudgetDistributionChart } from '@/components/budget/budget-distribution-chart';
 import { IncomeSourceDialog } from '@/components/budget/income-source-dialog';
 import { RecurringExpenseDialog } from '@/components/budget/recurring-expense-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type {
   BudgetSummary,
   IncomeSource,
@@ -31,6 +38,7 @@ export default function BudgetPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteType, setDeleteType] = useState<'income' | 'expense' | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadBudgetData();
@@ -209,43 +217,98 @@ export default function BudgetPage() {
                       key={source.id}
                       className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{source.name}</p>
-                          {source.isPrimary && (
-                            <Badge variant="default" className="text-xs">
-                              Principal
+                      {isMobile ? (
+                        // Layout móvil: badges en una fila, nombre y precio en otra, menú de 3 puntos
+                        <div className="flex-1 min-w-0">
+                          {/* Primera fila: Badges */}
+                          <div className="flex items-center gap-2 mb-1">
+                            {source.isPrimary && (
+                              <Badge variant="default" className="text-xs">
+                                Principal
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="text-xs">
+                              {getFrequencyLabel(source.frequency)}
                             </Badge>
-                          )}
+                          </div>
+                          {/* Segunda fila: Nombre y precio */}
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium truncate">{source.name}</p>
+                            <p className="font-bold text-green-600 whitespace-nowrap shrink-0">
+                              ${source.amount.toFixed(2)}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-500 mt-0.5">
-                          {getFrequencyLabel(source.frequency)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <p className="font-bold text-green-600 whitespace-nowrap">
-                          ${source.amount.toFixed(2)}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setEditingIncome(source);
-                            setIncomeDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-600"
-                          onClick={() => handleDeleteIncome(source.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      ) : (
+                        // Layout desktop: layout original
+                        <>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{source.name}</p>
+                              {source.isPrimary && (
+                                <Badge variant="default" className="text-xs">
+                                  Principal
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-500 mt-0.5">
+                              {getFrequencyLabel(source.frequency)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <p className="font-bold text-green-600 whitespace-nowrap">
+                              ${source.amount.toFixed(2)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingIncome(source);
+                                setIncomeDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600"
+                              onClick={() => handleDeleteIncome(source.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                      {/* Menú de 3 puntos solo en móvil */}
+                      {isMobile && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 shrink-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingIncome(source);
+                                setIncomeDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteIncome(source.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -282,44 +345,100 @@ export default function BudgetPage() {
                       key={expense.id}
                       className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{expense.name}</p>
-                          <Badge
-                            variant={expense.isEssential ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {expense.isEssential ? 'Esencial' : 'No esencial'}
-                          </Badge>
+                      {isMobile ? (
+                        // Layout móvil: badges en una fila, nombre y precio en otra, menú de 3 puntos
+                        <div className="flex-1 min-w-0">
+                          {/* Primera fila: Badges */}
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge
+                              variant={expense.isEssential ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {expense.isEssential ? 'Esencial' : 'No esencial'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {getFrequencyLabel(expense.frequency)}
+                            </Badge>
+                          </div>
+                          {/* Segunda fila: Nombre y precio */}
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium truncate">{expense.name}</p>
+                            <p className="font-bold text-red-600 whitespace-nowrap shrink-0">
+                              ${expense.amount.toFixed(2)}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-500 mt-0.5">
-                          {getFrequencyLabel(expense.frequency)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <p className="font-bold text-red-600 whitespace-nowrap">
-                          ${expense.amount.toFixed(2)}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setEditingExpense(expense);
-                            setExpenseDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-600"
-                          onClick={() => handleDeleteExpense(expense.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      ) : (
+                        // Layout desktop: layout original
+                        <>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{expense.name}</p>
+                              <Badge
+                                variant={expense.isEssential ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {expense.isEssential ? 'Esencial' : 'No esencial'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-slate-500 mt-0.5">
+                              {getFrequencyLabel(expense.frequency)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <p className="font-bold text-red-600 whitespace-nowrap">
+                              ${expense.amount.toFixed(2)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingExpense(expense);
+                                setExpenseDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600"
+                              onClick={() => handleDeleteExpense(expense.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                      {/* Menú de 3 puntos solo en móvil */}
+                      {isMobile && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 shrink-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingExpense(expense);
+                                setExpenseDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   ))}
                 </div>

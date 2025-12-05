@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Logo GrowUp - Icono de Crecimiento y Unificación</title>
+  <defs>
+    <linearGradient id="growup-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <!-- Verde para crecimiento -->
+      <stop offset="0%" style="stop-color:#48bb78;stop-opacity:1" />
+      <!-- Azul para tecnología y claridad -->
+      <stop offset="100%" style="stop-color:#4299e1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo: Círculo moderno que simboliza la centralización (la app) -->
+  <circle cx="128" cy="128" r="128" fill="#1f2937"/>
+
+  <!-- El elemento central: Un gráfico de crecimiento ascendente con un diseño que sugiere múltiples áreas (las 4 características) convergiendo -->
+  <g transform="translate(128, 128) scale(0.7)">
+    <path
+      d="M -60 -40 L -20 -80 L 20 -40 L 60 -80 L 60 40 L 20 80 L -20 40 L -60 80 Z"
+      fill="url(#growup-gradient)"
+      stroke="#fff"
+      stroke-width="12"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      opacity="0.25"
+    />
+    
+    <!-- Línea de progreso o crecimiento (La flecha principal) -->
+    <path
+      d="M -60 40 C -30 20, 30 20, 60 -40"
+      fill="none"
+      stroke="url(#growup-gradient)"
+      stroke-width="15"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    
+    <!-- Unificación y Meta (Punto final) -->
+    <circle cx="60" cy="-40" r="15" fill="#fff" stroke="url(#growup-gradient)" stroke-width="6"/>
+
+    <!-- Un icono abstracto de "Múltiples Datos" en la base -->
+    <rect x="-75" y="65" width="30" height="30" rx="6" fill="#4299e1" opacity="0.6"/>
+    <rect x="-40" y="55" width="30" height="30" rx="6" fill="#48bb78" opacity="0.6"/>
+    <rect x="-5" y="75" width="30" height="30" rx="6" fill="#f6ad55" opacity="0.6"/>
+    
+  </g>
+</svg>

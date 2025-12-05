@@ -1,59 +1,95 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Cell } from 'recharts';
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
 import type { BudgetSummary } from '@/types/budget.types';
 
 interface BudgetDistributionChartProps {
   summary: BudgetSummary;
 }
 
-const COLORS = {
-  essential: '#ef4444', // Red for essential expenses
-  nonEssential: '#f97316', // Orange for non-essential
-  savings: '#10b981', // Green for savings
-};
+// Colores para las categorías (paleta de colores variada)
+const CATEGORY_COLORS = [
+  '#06b6d4', // Cyan
+  '#3b82f6', // Blue
+  '#6366f1', // Indigo
+  '#8b5cf6', // Purple
+  '#a855f7', // Fuchsia
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#10b981', // Green
+  '#f59e0b', // Amber
+  '#f97316', // Orange
+  '#ef4444', // Red
+];
+
+// Función para obtener un color basado en el índice
+function getColorForCategory(index: number): string {
+  return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+}
 
 export function BudgetDistributionChart({ summary }: BudgetDistributionChartProps) {
-  const essentialExpenses = summary.expensesByCategory
-    .filter((cat) => cat.isEssential)
-    .reduce((sum, cat) => sum + cat.amount, 0);
+  // Crear datos del gráfico basados en categorías individuales
+  const categoryData = summary.expensesByCategory
+    .filter((cat) => cat.amount > 0)
+    .map((cat, index) => {
+      const categoryKey = cat.category.toLowerCase().replace(/\s+/g, '-');
+      return {
+        category: categoryKey,
+        name: cat.categoryName,
+        value: cat.amount,
+        percentage:
+          summary.totalMonthlyIncome > 0
+            ? ((cat.amount / summary.totalMonthlyIncome) * 100).toFixed(1)
+            : '0',
+        fill: `var(--color-${categoryKey})`,
+        isEssential: cat.isEssential,
+        color: getColorForCategory(index),
+      };
+    });
 
-  const nonEssentialExpenses = summary.expensesByCategory
-    .filter((cat) => !cat.isEssential)
-    .reduce((sum, cat) => sum + cat.amount, 0);
-
+  // Agregar ahorro disponible si hay balance positivo
   const savings = summary.availableBalance > 0 ? summary.availableBalance : 0;
-
+  const savingsColor = '#10b981';
   const chartData = [
-    {
-      name: 'Gastos Esenciales',
-      value: essentialExpenses,
-      percentage:
-        summary.totalMonthlyIncome > 0
-          ? ((essentialExpenses / summary.totalMonthlyIncome) * 100).toFixed(1)
-          : '0',
-      color: COLORS.essential,
+    ...categoryData,
+    ...(savings > 0
+      ? [
+          {
+            category: 'ahorro-disponible',
+            name: 'Ahorro Disponible',
+            value: savings,
+            percentage:
+              summary.totalMonthlyIncome > 0
+                ? ((savings / summary.totalMonthlyIncome) * 100).toFixed(1)
+                : '0',
+            fill: savingsColor,
+            isEssential: false,
+            color: savingsColor,
+          },
+        ]
+      : []),
+  ];
+
+  // Crear chartConfig dinámicamente
+  const chartConfig: ChartConfig = {
+    value: {
+      label: 'Valor',
     },
-    {
-      name: 'Gastos No Esenciales',
-      value: nonEssentialExpenses,
-      percentage:
-        summary.totalMonthlyIncome > 0
-          ? ((nonEssentialExpenses / summary.totalMonthlyIncome) * 100).toFixed(1)
-          : '0',
-      color: COLORS.nonEssential,
-    },
-    {
-      name: 'Ahorro Disponible',
-      value: savings,
-      percentage:
-        summary.totalMonthlyIncome > 0
-          ? ((savings / summary.totalMonthlyIncome) * 100).toFixed(1)
-          : '0',
-      color: COLORS.savings,
-    },
-  ].filter((item) => item.value > 0);
+    ...chartData.reduce((acc, item) => {
+      acc[item.category] = {
+        label: item.name,
+        color: item.color,
+      };
+      return acc;
+    }, {} as ChartConfig),
+  };
 
   if (chartData.length === 0) {
     return (
@@ -69,55 +105,32 @@ export function BudgetDistributionChart({ summary }: BudgetDistributionChartProp
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="flex flex-col">
+      <CardHeader className="items-center pb-0">
         <CardTitle>Distribución de Presupuesto Mensual</CardTitle>
-        <p className="text-sm text-slate-500 mt-1">
-          Distribución de tus ingresos mensuales en porcentajes
-        </p>
+        <CardDescription>Distribución de tus ingresos mensuales por categoría</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
+      <CardContent className="flex-1 pb-0">
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
           <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, payload }) => `${name} (${payload?.percentage ?? 0}%)`}
-              outerRadius={100}
-              fill="#8884d8"
-              dataKey="value"
-            >
+            <Pie data={chartData} dataKey="value" nameKey="category" cx="50%" cy="50%">
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell key={`cell-${index}`} fill={entry.fill || entry.color} />
               ))}
             </Pie>
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-                      <p className="font-semibold">{data.name}</p>
-                      <p className="text-sm">${data.value.toFixed(2)}</p>
-                      <p className="text-sm text-slate-500">{data.percentage}% del ingreso</p>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              formatter={(value, entry) => {
-                const data = entry.payload ?? { value: 0 };
-                return `${value}: $${data.value.toFixed(2)}`;
-              }}
+            <ChartLegend
+              content={(legendProps) => (
+                <ChartLegendContent
+                  payload={legendProps?.payload}
+                  verticalAlign={legendProps?.verticalAlign}
+                  nameKey="category"
+                  className="flex-wrap gap-2 *:basis-1/4 *:justify-center"
+                />
+              )}
+              className="-translate-y-2"
             />
           </PieChart>
-        </ResponsiveContainer>
+        </ChartContainer>
 
         {/* Summary Stats */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">

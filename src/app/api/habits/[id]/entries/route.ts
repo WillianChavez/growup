@@ -1,26 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HabitService } from '@/services/habit.service';
-import { verifyToken } from '@/lib/jwt';
+import { withUserContext } from '@/lib/api-context-helper';
 import type { ApiResponse } from '@/types/api.types';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No autenticado' },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { date, completed, notes } = body;
 
@@ -32,13 +16,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const { id } = await params;
-    const entry = await HabitService.logEntry(
-      id, // habitId primero
-      payload.userId, // userId segundo
-      new Date(date),
-      completed ?? false,
-      notes
-    );
+
+    // Ejecutar con contexto de usuario para que el middleware convierta fechas automáticamente
+    const entry = await withUserContext(request, async (userContext) => {
+      return await HabitService.logEntry(
+        id, // habitId primero
+        userContext.userId, // userId segundo
+        new Date(date),
+        completed ?? false,
+        notes
+      );
+    });
+
+    if (!entry) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
 
     return NextResponse.json<ApiResponse>({
       success: true,
@@ -56,22 +51,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No autenticado' },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate')
       ? new Date(searchParams.get('startDate')!)
@@ -81,7 +60,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       : undefined;
 
     const { id } = await params;
-    const entries = await HabitService.getEntries(id, payload.userId, startDate, endDate);
+
+    const entries = await withUserContext(request, async (userContext) => {
+      return await HabitService.getEntries(id, userContext.userId, startDate, endDate);
+    });
+
+    if (!entries) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
 
     return NextResponse.json<ApiResponse>({
       success: true,

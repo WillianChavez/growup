@@ -18,29 +18,22 @@ export function DailyTracker() {
   const [dailyView, setDailyView] = useState<DailyHabitView | null>(null);
   const { fetchDailyView, toggleHabit } = useDailyHabits();
 
+  const loadDailyView = async () => {
+    const view = await fetchDailyView(currentDate);
+    setDailyView(view);
+  };
+
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadData() {
-      const view = await fetchDailyView(currentDate);
-      if (!cancelled) {
-        setDailyView(view);
-      }
-    }
-
-    loadData();
-
-    return () => {
-      cancelled = true;
-    };
+    void loadDailyView();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
   const handleToggle = async (habitId: string, completed: boolean) => {
-    await toggleHabit(habitId, currentDate, completed);
-    // Recargar datos después de toggle
-    const view = await fetchDailyView(currentDate);
-    setDailyView(view);
+    const success = await toggleHabit(habitId, currentDate, completed);
+    if (success) {
+      // Recargar datos después de toggle exitoso
+      await loadDailyView();
+    }
   };
 
   const goToPrevDay = () => setCurrentDate(subDays(currentDate, 1));

@@ -371,7 +371,10 @@ function GoalAccordionItemComponent({
               <div className="space-y-2 min-h-[100px]">
                 {/* Preview cuando se arrastra sobre esta columna */}
                 {dragOverColumn === 'pending' && draggedMilestone && draggedMilestone.completed && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-100 dark:bg-blue-900/30 border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-lg animate-pulse">
+                  <div
+                    key={`preview-pending-${draggedMilestone.id}`}
+                    className="flex items-center gap-2 p-3 bg-blue-100 dark:bg-blue-900/30 border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-lg animate-pulse"
+                  >
                     <GripVertical className="h-4 w-4 text-blue-500 shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -398,11 +401,19 @@ function GoalAccordionItemComponent({
                     </div>
                   </div>
                 ))}
-                {pendingMilestones.length === 0 && (
-                  <div className="flex items-center justify-center h-24 text-sm text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
-                    Arrastra hitos aquí
-                  </div>
-                )}
+                {pendingMilestones.length === 0 &&
+                  !(
+                    dragOverColumn === 'pending' &&
+                    draggedMilestone &&
+                    draggedMilestone.completed
+                  ) && (
+                    <div
+                      key="empty-pending"
+                      className="flex items-center justify-center h-24 text-sm text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg"
+                    >
+                      Arrastra hitos aquí
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -427,7 +438,10 @@ function GoalAccordionItemComponent({
                 {dragOverColumn === 'completed' &&
                   draggedMilestone &&
                   !draggedMilestone.completed && (
-                    <div className="flex items-center gap-2 p-3 bg-green-100 dark:bg-green-900/30 border-2 border-dashed border-green-400 dark:border-green-600 rounded-lg animate-pulse">
+                    <div
+                      key={`preview-completed-${draggedMilestone.id}`}
+                      className="flex items-center gap-2 p-3 bg-green-100 dark:bg-green-900/30 border-2 border-dashed border-green-400 dark:border-green-600 rounded-lg animate-pulse"
+                    >
                       <GripVertical className="h-4 w-4 text-green-500 shrink-0" />
                       <div className="flex-1">
                         <p className="text-sm text-green-700 dark:text-green-300 line-through">
@@ -461,11 +475,19 @@ function GoalAccordionItemComponent({
                     </div>
                   </div>
                 ))}
-                {completedMilestones.length === 0 && (
-                  <div className="flex items-center justify-center h-24 text-sm text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
-                    Arrastra hitos completados aquí
-                  </div>
-                )}
+                {completedMilestones.length === 0 &&
+                  !(
+                    dragOverColumn === 'completed' &&
+                    draggedMilestone &&
+                    !draggedMilestone.completed
+                  ) && (
+                    <div
+                      key="empty-completed"
+                      className="flex items-center justify-center h-24 text-sm text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg"
+                    >
+                      Arrastra hitos completados aquí
+                    </div>
+                  )}
               </div>
             </div>
           </div>
