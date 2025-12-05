@@ -4,9 +4,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  # Configuración del plugin
-  [plugins.inputs]
-    functions_dir = ".netlify/functions-internal"
 
 [build.environment]
   NODE_VERSION = "20"
