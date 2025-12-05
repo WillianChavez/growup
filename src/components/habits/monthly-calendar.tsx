@@ -131,9 +131,19 @@ export function MonthlyCalendar() {
 
           {/* Actual days */}
           {daysInMonth.map((day, index) => {
-            const dayData = monthlyData.find(
-              (d) => format(d.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
-            );
+            // Normalizar el día al mediodía para comparación consistente
+            const normalizedDay = new Date(day);
+            normalizedDay.setHours(12, 0, 0, 0);
+
+            const dayData = monthlyData.find((d) => {
+              const dataDate = new Date(d.date);
+              // Ambas fechas ya están normalizadas al mediodía, comparar solo año-mes-día
+              return (
+                dataDate.getFullYear() === normalizedDay.getFullYear() &&
+                dataDate.getMonth() === normalizedDay.getMonth() &&
+                dataDate.getDate() === normalizedDay.getDate()
+              );
+            });
 
             const completedCount = dayData?.completedCount || 0;
             const totalCount = dayData?.totalCount || 0;
