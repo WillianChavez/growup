@@ -1,27 +1,178 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, BookOpen } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  BookOpen,
+  Search,
+  Plus,
+  Minus,
+  MoreVertical,
+  CheckCircle2,
+  Flame,
+  Bookmark,
+  Star,
+  Library,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBooks } from '@/hooks/useBooks';
 import { BookDialog } from '@/components/books/book-dialog';
-import { BookCard } from '@/components/books/book-card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import Image from 'next/image';
 import type { Book, BookFormData, BookStatus } from '@/types/book.types';
+import { cn } from '@/lib/utils';
+
+interface BookCardItemProps {
+  book: Book;
+  progress: number;
+  onUpdatePage: (bookId: string, delta: number) => void;
+  onPageInput: (bookId: string, value: string) => void;
+  onEdit: (book: Book) => void;
+}
+
+function BookCardItem({ book, progress, onUpdatePage, onPageInput, onEdit }: BookCardItemProps) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-50 dark:border-slate-800 flex flex-col md:flex-row gap-6 sm:gap-8 group hover:shadow-2xl hover:shadow-indigo-500/5 transition-all relative overflow-hidden">
+      {/* Portada con Badge de Progreso */}
+      <div className="relative w-full md:w-40 h-60 shrink-0">
+        <div className="w-full h-full rounded-4xl overflow-hidden shadow-2xl relative z-10">
+          {book.coverUrl && !imageError ? (
+            <Image
+              src={book.coverUrl}
+              alt={book.title}
+              fill
+              className="object-cover"
+              unoptimized
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <BookOpen className="h-12 w-12 text-slate-400 dark:text-slate-600" />
+            </div>
+          )}
+        </div>
+        <div className="absolute -bottom-3 -right-3 z-20 bg-white dark:bg-slate-900 p-2 rounded-4xl shadow-xl border border-slate-100 dark:border-slate-800">
+          <div
+            className={cn(
+              'w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs',
+              progress === 100
+                ? 'bg-emerald-500 text-white'
+                : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+            )}
+          >
+            {progress}%
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido e Inteligencia de Actualización */}
+      <div className="flex-1 flex flex-col justify-between py-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-tight tracking-tight mb-1">
+              {book.title}
+            </h3>
+            <p className="text-sm text-slate-400 dark:text-slate-500 font-bold">{book.author}</p>
+          </div>
+          <button
+            onClick={() => onEdit(book)}
+            className="text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"
+          >
+            <MoreVertical size={20} />
+          </button>
+        </div>
+
+        {/* CONTROLES INTELIGENTES */}
+        {book.status === 'reading' && (
+          <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => onUpdatePage(book.id, -1)}
+                  className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-500 dark:hover:text-rose-400 transition-all active:scale-90"
+                >
+                  <Minus size={18} strokeWidth={3} />
+                </button>
+
+                <div className="flex flex-col items-center">
+                  <input
+                    type="number"
+                    value={book.currentPage}
+                    onChange={(e) => onPageInput(book.id, e.target.value)}
+                    min="0"
+                    max={book.pages}
+                    className="w-16 text-center font-black text-xl sm:text-2xl text-slate-800 dark:text-white bg-transparent border-none focus:ring-0 p-0"
+                  />
+                  <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                    Pág. Actual
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => onUpdatePage(book.id, 1)}
+                  className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all active:scale-90"
+                >
+                  <Plus size={18} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="text-right">
+                <p className="text-xs font-black text-slate-400 dark:text-slate-500 tracking-tighter uppercase">
+                  Total
+                </p>
+                <p className="text-lg font-black text-slate-800 dark:text-white leading-none">
+                  {book.pages}
+                </p>
+              </div>
+            </div>
+
+            {/* Barra de Progreso Dinámica */}
+            <div className="relative pt-2">
+              <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1">
+                <div
+                  className="h-full bg-indigo-500 dark:bg-indigo-600 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Info para libros no en lectura */}
+        {book.status !== 'reading' && (
+          <div className="mt-6 sm:mt-8 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                {book.status === 'completed'
+                  ? 'Completado'
+                  : book.status === 'to-read'
+                    ? 'Por Leer'
+                    : 'Abandonado'}
+              </span>
+              <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                {book.pages} páginas
+              </span>
+            </div>
+            {book.genre && (
+              <p className="text-xs text-slate-400 dark:text-slate-500">{book.genre}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function ReadingPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [activeTab, setActiveTab] = useState<BookStatus>('reading');
+  const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<string | null>(null);
-  const isMobile = useIsMobile();
   const { fetchBooks, createBook, updateBook, deleteBook, isLoading } = useBooks();
 
   useEffect(() => {
@@ -48,11 +199,6 @@ export default function ReadingPage() {
     setBooks(booksData);
   };
 
-  const handleDeleteBook = (bookId: string) => {
-    setBookToDelete(bookId);
-    setDeleteDialogOpen(true);
-  };
-
   const handleConfirmDelete = async () => {
     if (bookToDelete) {
       await deleteBook(bookToDelete);
@@ -62,160 +208,253 @@ export default function ReadingPage() {
     }
   };
 
-  // Calculate stats
-  const stats = {
-    totalBooks: books.length,
-    completedThisYear: books.filter((b) => b.status === 'completed').length,
-    currentlyReading: books.filter((b) => b.status === 'reading').length,
-    pagesRead: books.reduce((sum, book) => sum + book.currentPage, 0),
+  const updatePage = async (bookId: string, delta: number) => {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+
+    const newPage = Math.min(Math.max(0, book.currentPage + delta), book.pages);
+    await updateBook(bookId, { currentPage: newPage });
+    const booksData = await fetchBooks();
+    setBooks(booksData);
   };
 
-  const filteredBooks = books.filter((book) => book.status === activeTab);
+  const handlePageInput = async (bookId: string, value: string) => {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+
+    const num = parseInt(value) || 0;
+    const newPage = Math.min(Math.max(0, num), book.pages);
+    await updateBook(bookId, { currentPage: newPage });
+    const booksData = await fetchBooks();
+    setBooks(booksData);
+  };
+
+  const getProgress = (current: number, total: number) => Math.round((current / total) * 100);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const currentlyReading = books.filter((b) => b.status === 'reading').length;
+    const completedThisYear = books.filter((b) => {
+      if (b.status !== 'completed' || !b.endDate) return false;
+      const endDate = new Date(b.endDate);
+      const currentYear = new Date().getFullYear();
+      return endDate.getFullYear() === currentYear;
+    }).length;
+    const toRead = books.filter((b) => b.status === 'to-read').length;
+    const pagesRead = books.reduce((sum, book) => sum + book.currentPage, 0);
+
+    // Calcular días de racha (simplificado - se puede mejorar)
+    const readingBooks = books.filter((b) => b.status === 'reading');
+    const streakDays = readingBooks.length > 0 ? 8 : 0; // Placeholder
+
+    return {
+      currentlyReading,
+      completedThisYear,
+      toRead,
+      pagesRead,
+      streakDays,
+    };
+  }, [books]);
+
+  // Filtrar libros por búsqueda y tab activo
+  const filteredBooks = useMemo(() => {
+    let filtered = books.filter((book) => book.status === activeTab);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (book) =>
+          book.title.toLowerCase().includes(query) ||
+          book.author.toLowerCase().includes(query) ||
+          (book.genre && book.genre.toLowerCase().includes(query))
+      );
+    }
+
+    return filtered;
+  }, [books, activeTab, searchQuery]);
+
+  const tabLabels: Record<BookStatus, string> = {
+    reading: 'leyendo',
+    'to-read': 'por leer',
+    completed: 'completados',
+    abandoned: 'abandonados',
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* HEADER */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg">
+              <Library size={18} />
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400">
+              GrowUp Reader
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             Mi Biblioteca
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-400 dark:text-slate-500 font-medium mt-1">
             Registra y organiza tus lecturas
           </p>
         </div>
-        <Button
-          className="bg-linear-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 w-full sm:w-auto text-sm hidden sm:flex"
+
+        <button
           onClick={() => handleOpenDialog()}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 dark:shadow-indigo-900/50 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 w-full md:w-auto"
         >
-          <Plus className="mr-1 sm:mr-2 h-4 w-4" />
-          Agregar Libro
-        </Button>
-      </div>
+          <Plus size={18} strokeWidth={3} /> NUEVO LIBRO
+        </button>
+      </header>
 
-      {/* Stats */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total de Libros</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold">{stats.totalBooks}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium">Completados</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">
-              {stats.completedThisYear}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium">Leyendo Ahora</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold text-blue-600">
-              {stats.currentlyReading}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium">Páginas Leídas</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-lg sm:text-2xl font-bold text-purple-600">{stats.pagesRead}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Books List with Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as BookStatus)}>
-        <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 lg:inline-flex">
-          <TabsTrigger value="reading" className="text-xs sm:text-sm">
-            Leyendo
-          </TabsTrigger>
-          <TabsTrigger value="to-read" className="text-xs sm:text-sm">
-            Por Leer
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="text-xs sm:text-sm">
-            Completados
-          </TabsTrigger>
-          <TabsTrigger value="abandoned" className="text-xs sm:text-sm">
-            Abandonados
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={activeTab} className="mt-6">
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-full" />
-                      </div>
-                      <Skeleton className="h-8 w-8 rounded" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Skeleton className="h-2 w-full" />
-                    <div className="flex gap-2">
-                      <Skeleton className="h-6 w-20" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : filteredBooks.length === 0 ? (
-              <Card className="col-span-full border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-16 px-4">
-                  <div className="relative mb-6 inline-block">
-                    <div className="absolute inset-0 bg-linear-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-2xl" />
-                    <BookOpen className="relative h-20 w-20 text-blue-500 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                    No hay libros en esta categoría
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center max-w-md">
-                    {activeTab === 'reading'
-                      ? 'Comienza a leer y registra tu progreso. Cada página te acerca a tus objetivos.'
-                      : activeTab === 'to-read'
-                        ? 'Crea tu lista de lectura. Planifica qué leerás a continuación.'
-                        : activeTab === 'completed'
-                          ? '¡Excelente trabajo! Los libros completados aparecerán aquí.'
-                          : 'Los libros abandonados aparecerán aquí.'}
-                  </p>
-                  {activeTab !== 'completed' && (
-                    <Button
-                      onClick={() => handleOpenDialog()}
-                      className="bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Agregar Libro
-                    </Button>
+      {/* Contenido */}
+      <div className="space-y-6 lg:space-y-8">
+        {/* RESUMEN DE ACTIVIDAD */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            {
+              label: 'Leyendo',
+              val: String(stats.currentlyReading),
+              icon: Flame,
+              color: 'text-orange-500 dark:text-orange-400',
+              bg: 'bg-orange-50 dark:bg-orange-900/20',
+            },
+            {
+              label: 'Meta 2024',
+              val: `${stats.completedThisYear}/20`,
+              icon: Star,
+              color: 'text-yellow-500 dark:text-yellow-400',
+              bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+            },
+            {
+              label: 'Días Racha',
+              val: String(stats.streakDays),
+              icon: CheckCircle2,
+              color: 'text-emerald-500 dark:text-emerald-400',
+              bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+            },
+            {
+              label: 'Por Leer',
+              val: String(stats.toRead),
+              icon: Bookmark,
+              color: 'text-indigo-500 dark:text-indigo-400',
+              bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+            },
+          ].map((s, i) => {
+            const IconComponent = s.icon;
+            return (
+              <div
+                key={i}
+                className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 sm:p-5 rounded-4xl shadow-sm flex items-center gap-3 sm:gap-4"
+              >
+                <div
+                  className={cn(
+                    'w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0',
+                    s.bg,
+                    s.color
                   )}
-                </CardContent>
-              </Card>
-            ) : (
-              filteredBooks.map((book, index) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                  index={index}
-                  onEdit={handleOpenDialog}
-                  onDelete={handleDeleteBook}
-                />
-              ))
+                >
+                  <IconComponent size={20} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-none">
+                    {s.val}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {s.label}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* FILTROS Y BÚSQUEDA */}
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto overflow-x-auto">
+            {(['reading', 'to-read', 'completed'] as BookStatus[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'px-4 sm:px-6 py-2.5 rounded-xl text-xs font-black capitalize whitespace-nowrap transition-all',
+                  activeTab === tab
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md'
+                    : 'text-slate-500 dark:text-slate-400'
+                )}
+              >
+                {tabLabels[tab]}
+              </button>
+            ))}
+          </div>
+          <div className="relative flex-1 w-full">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Buscar en tu biblioteca..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* LISTADO DE LIBROS CON CONTROLES IN-CARD */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 pb-12">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 w-full rounded-[2.5rem]" />
+            ))}
+          </div>
+        ) : filteredBooks.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-12 sm:p-16 text-center border border-slate-100 dark:border-slate-800">
+            <div className="relative mb-6 inline-block">
+              <div className="absolute inset-0 bg-linear-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-2xl" />
+              <BookOpen className="relative h-20 w-20 text-blue-500 dark:text-blue-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              No hay libros en esta categoría
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              {activeTab === 'reading'
+                ? 'Comienza a leer y registra tu progreso. Cada página te acerca a tus objetivos.'
+                : activeTab === 'to-read'
+                  ? 'Crea tu lista de lectura. Planifica qué leerás a continuación.'
+                  : '¡Excelente trabajo! Los libros completados aparecerán aquí.'}
+            </p>
+            {activeTab !== 'completed' && (
+              <Button
+                onClick={() => handleOpenDialog()}
+                className="bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Libro
+              </Button>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 pb-12">
+            {filteredBooks.map((book) => {
+              const progress = getProgress(book.currentPage, book.pages);
+              return (
+                <BookCardItem
+                  key={book.id}
+                  book={book}
+                  progress={progress}
+                  onUpdatePage={updatePage}
+                  onPageInput={handlePageInput}
+                  onEdit={handleOpenDialog}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Dialogs */}
       <BookDialog
@@ -238,11 +477,6 @@ export default function ReadingPage() {
         variant="destructive"
         onConfirm={handleConfirmDelete}
       />
-
-      {/* Floating Action Button para móvil */}
-      {isMobile && (
-        <FloatingActionButton onClick={() => handleOpenDialog()} label="Agregar Libro" />
-      )}
     </div>
   );
 }

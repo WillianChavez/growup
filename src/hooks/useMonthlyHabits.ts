@@ -3,6 +3,17 @@
 import { useState, useCallback } from 'react';
 import type { MonthlyHabitData } from '@/types/habit.types';
 
+interface MonthlyHabitDataResponse {
+  date: string; // YYYY-MM-DD format
+  completedCount: number;
+  totalCount: number;
+  habits: Array<{
+    habitId: string;
+    habitTitle: string;
+    completed: boolean;
+  }>;
+}
+
 export function useMonthlyHabits() {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -13,12 +24,20 @@ export function useMonthlyHabits() {
         const response = await fetch(`/api/habits/monthly/${year}/${month}`);
         if (!response.ok) throw new Error('Failed to fetch monthly habits');
         const result = await response.json();
-        const data = result.data || [];
-        // Convertir las fechas de string ISO a objetos Date y normalizarlas a mediodía local
-        return data.map((item: MonthlyHabitData) => {
-          const date = typeof item.date === 'string' ? new Date(item.date) : new Date(item.date);
-          // Normalizar al mediodía local para evitar problemas de zona horaria
-          date.setHours(12, 0, 0, 0);
+        const data = (result.data || []) as MonthlyHabitDataResponse[];
+        // Convertir las fechas de string YYYY-MM-DD a objetos Date y normalizarlas a mediodía local
+        return data.map((item) => {
+          // Parsear YYYY-MM-DD como fecha local (no UTC)
+          const [yearStr, monthStr, dayStr] = item.date.split('-');
+          const date = new Date(
+            parseInt(yearStr),
+            parseInt(monthStr) - 1,
+            parseInt(dayStr),
+            12,
+            0,
+            0,
+            0
+          );
           return {
             ...item,
             date,

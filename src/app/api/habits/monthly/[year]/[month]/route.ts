@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HabitService } from '@/services/habit.service';
 import { withUserContext } from '@/lib/api-context-helper';
 import type { ApiResponse } from '@/types/api.types';
+import { format } from 'date-fns';
 
 export async function GET(
   request: NextRequest,
@@ -32,9 +33,23 @@ export async function GET(
       return monthlyData;
     }
 
+    // Si monthlyData es null, retornar error
+    if (!monthlyData) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Serializar fechas como strings YYYY-MM-DD para evitar problemas de zona horaria en el frontend
+    const serializedData = monthlyData.map((item) => ({
+      ...item,
+      date: format(item.date, 'yyyy-MM-dd'),
+    }));
+
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: monthlyData,
+      data: serializedData,
     });
   } catch (error) {
     console.error('Error fetching monthly habits:', error);

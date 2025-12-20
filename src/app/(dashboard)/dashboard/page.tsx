@@ -132,7 +132,7 @@ export default function DashboardPage() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+        <Card className="border-l-4 border-l-blue-500 bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
           <CardContent className="pt-6">
             <p className="text-lg font-medium italic text-slate-700 dark:text-slate-300">
               &ldquo;{motivationalQuote.quote}&rdquo;
