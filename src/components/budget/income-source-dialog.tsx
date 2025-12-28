@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Tag, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,12 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type {
-  IncomeSource,
-  IncomeSourceFormData,
-  IncomeFrequency,
-  IncomeCategory,
-} from '@/types/budget.types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TransactionCategorySelector } from '@/components/finance/category-selector';
+import { useTransactionCategories } from '@/hooks/useTransactionCategories';
+import type { TransactionCategory } from '@/types/finance.types';
+import type { IncomeSource, IncomeSourceFormData, IncomeFrequency } from '@/types/budget.types';
 import { parseCurrencyInput } from '@/lib/currency-utils';
 
 interface IncomeSourceDialogProps {
@@ -50,6 +49,9 @@ export function IncomeSourceDialog({
     category: 'salary',
     isPrimary: false,
   });
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const { fetchCategories } = useTransactionCategories();
 
   useEffect(() => {
     if (open) {
@@ -62,8 +64,28 @@ export function IncomeSourceDialog({
         category: incomeSource?.category || 'salary',
         isPrimary: incomeSource?.isPrimary || false,
       });
+
+      const loadCategories = async () => {
+        const cats = await fetchCategories('income');
+        setCategories(cats);
+      };
+      void loadCategories();
     }
-  }, [open, incomeSource]);
+  }, [open, incomeSource, fetchCategories]);
+
+  const INCOME_MAP_REVERSE: Record<string, string> = {
+    salary: 'Salario',
+    freelance: 'Freelance',
+    business: 'Negocio',
+    investment: 'Inversiones',
+    rental: 'Renta',
+    other: 'Otros',
+  };
+
+  const selectedCategory = categories.find(
+    (c: TransactionCategory) =>
+      c.name === formData.category || INCOME_MAP_REVERSE[formData.category] === c.name
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,24 +173,37 @@ export function IncomeSourceDialog({
 
           <div className="space-y-2">
             <Label>Categoría *</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value: IncomeCategory) =>
-                setFormData({ ...formData, category: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="salary">💼 Salario</SelectItem>
-                <SelectItem value="freelance">🎨 Freelance</SelectItem>
-                <SelectItem value="business">🏢 Negocio</SelectItem>
-                <SelectItem value="investment">📈 Inversiones</SelectItem>
-                <SelectItem value="rental">🏠 Renta</SelectItem>
-                <SelectItem value="other">📦 Otros</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover open={showCategorySelector} onOpenChange={setShowCategorySelector}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <Tag size={16} className="text-slate-400" />
+                    <span>
+                      {selectedCategory
+                        ? `${selectedCategory.emoji} ${selectedCategory.name}`
+                        : 'Seleccionar categoría'}
+                    </span>
+                  </div>
+                  <ChevronDown size={16} className="text-slate-400" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4" align="start">
+                <TransactionCategorySelector
+                  value={selectedCategory?.id || ''}
+                  onChange={(categoryId: string) => {
+                    const cat = categories.find((c: TransactionCategory) => c.id === categoryId);
+                    if (cat) {
+                      setFormData({ ...formData, category: cat.name });
+                      setShowCategorySelector(false);
+                    }
+                  }}
+                  type="income"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex items-center space-x-2">

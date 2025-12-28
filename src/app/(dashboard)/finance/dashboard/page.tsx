@@ -25,6 +25,7 @@ import {
   type TooltipItem,
 } from 'chart.js';
 import { Line, Pie, Bar } from 'react-chartjs-2';
+import { cn } from '@/lib/utils';
 import type { FinancialDashboardKPIs } from '@/types/financial.types';
 import type { MonthlyTransactionGroup } from '@/types/finance.types';
 import type { BudgetSummary } from '@/types/budget.types';
@@ -162,22 +163,34 @@ export default function FinancialDashboardPage() {
   const budgetChartData = budgetSummary
     ? {
         labels: budgetSummary.expensesByCategory
-          .filter((cat) => cat.amount > 0)
-          .map((cat) => cat.categoryName),
+          .filter(
+            (cat: (typeof budgetSummary.expensesByCategory)[0]) =>
+              cat.amount > 0 || cat.actualAmount > 0
+          )
+          .map((cat: (typeof budgetSummary.expensesByCategory)[0]) => cat.categoryName),
         datasets: [
           {
-            label: 'Gastos por Categoría',
+            label: 'Planeado',
             data: budgetSummary.expensesByCategory
-              .filter((cat) => cat.amount > 0)
-              .map((cat) => cat.amount),
-            backgroundColor: budgetSummary.expensesByCategory
-              .filter((cat) => cat.amount > 0)
-              .map((cat) =>
-                cat.isEssential ? 'rgba(239, 68, 68, 0.8)' : 'rgba(59, 130, 246, 0.8)'
-              ),
-            borderColor: budgetSummary.expensesByCategory
-              .filter((cat) => cat.amount > 0)
-              .map((cat) => (cat.isEssential ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)')),
+              .filter(
+                (cat: (typeof budgetSummary.expensesByCategory)[0]) =>
+                  cat.amount > 0 || cat.actualAmount > 0
+              )
+              .map((cat: (typeof budgetSummary.expensesByCategory)[0]) => cat.amount),
+            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1,
+          },
+          {
+            label: 'Real',
+            data: budgetSummary.expensesByCategory
+              .filter(
+                (cat: (typeof budgetSummary.expensesByCategory)[0]) =>
+                  cat.amount > 0 || cat.actualAmount > 0
+              )
+              .map((cat: (typeof budgetSummary.expensesByCategory)[0]) => cat.actualAmount),
+            backgroundColor: 'rgba(239, 68, 68, 0.5)',
+            borderColor: 'rgb(239, 68, 68)',
             borderWidth: 1,
           },
         ],
@@ -190,16 +203,18 @@ export default function FinancialDashboardPage() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: 'bottom' as const,
       },
       tooltip: {
         callbacks: {
           label: function (context: TooltipItem<'bar'>) {
             const value = context.parsed.x;
             if (value === null || value === undefined) return '';
-            const total = budgetSummary?.totalMonthlyExpenses || 0;
-            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-            return `${formatCurrencyDisplay(value)} (${percentage}% del total)`;
+            const datasetLabel = context.dataset.label || '';
+            const total = budgetSummary?.totalMonthlyExpenses || 1;
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${datasetLabel}: ${formatCurrencyDisplay(value)} (${percentage}% del ppto total)`;
           },
         },
       },
@@ -211,7 +226,7 @@ export default function FinancialDashboardPage() {
         },
         ticks: {
           font: {
-            size: 12,
+            size: 11,
           },
         },
       },
@@ -248,7 +263,7 @@ export default function FinancialDashboardPage() {
 
   // Crear un mapa de los datos existentes por mes
   const dataByMonth = new Map<string, { income: number; expenses: number }>();
-  monthlyData.forEach((group) => {
+  monthlyData.forEach((group: MonthlyTransactionGroup) => {
     if (group.year === currentYear) {
       const monthKey = group.month; // 'yyyy-MM'
       dataByMonth.set(monthKey, {
@@ -354,10 +369,105 @@ export default function FinancialDashboardPage() {
 
       {/* KPI Cards Grid */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
+        {/* ... existing cards ... */}
+        {/* Presupuesto vs Real (New Highlights) */}
+        {budgetSummary && (
+          <Card className="col-span-1 xs:col-span-2 lg:col-span-3 border-2 border-slate-100 dark:border-slate-800">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold">Resumen de Presupuesto</CardTitle>
+                  <CardDescription>
+                    Comparación de gastos planeados vs reales este mes
+                  </CardDescription>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">
+                    {formatCurrencyDisplay(budgetSummary.actualMonthlyExpenses)}
+                    <span className="text-sm font-normal text-slate-500 ml-1">
+                      de {formatCurrencyDisplay(budgetSummary.totalMonthlyExpenses)}
+                    </span>
+                  </div>
+                  <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Gasto Actual
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Barra de progreso global */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      Progreso Total
+                    </span>
+                    <span
+                      className={cn(
+                        'font-bold',
+                        budgetSummary.actualMonthlyExpenses > budgetSummary.totalMonthlyExpenses
+                          ? 'text-red-500'
+                          : 'text-blue-500'
+                      )}
+                    >
+                      {(
+                        (budgetSummary.actualMonthlyExpenses / budgetSummary.totalMonthlyExpenses) *
+                        100
+                      ).toFixed(1)}
+                      %
+                    </span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${Math.min((budgetSummary.actualMonthlyExpenses / budgetSummary.totalMonthlyExpenses) * 100, 100)}%`,
+                      }}
+                      className={cn(
+                        'h-full transition-all duration-500',
+                        budgetSummary.actualMonthlyExpenses > budgetSummary.totalMonthlyExpenses
+                          ? 'bg-red-500'
+                          : 'bg-blue-500'
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Categorías excedidas */}
+                {budgetSummary.expensesByCategory.some(
+                  (cat) => cat.amount > 0 && cat.actualAmount > cat.amount
+                ) && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30">
+                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold text-sm mb-2">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Categorías Excedidas</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {budgetSummary.expensesByCategory
+                        .filter((cat) => cat.amount > 0 && cat.actualAmount > cat.amount)
+                        .map((cat, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded border border-red-50 dark:border-red-900/10"
+                          >
+                            <span className="text-xs font-semibold">{cat.categoryName}</span>
+                            <span className="text-xs font-bold text-red-600">
+                              +{formatCurrencyDisplay(cat.actualAmount - cat.amount)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Ingreso Mensual */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Ingreso Mensual</CardTitle>
+            <CardTitle className="text-sm font-medium">Ingreso Mensual Planeado</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -368,10 +478,10 @@ export default function FinancialDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Gastos Mensuales */}
+        {/* Gastos Mensuales Planeados */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Gastos Mensuales</CardTitle>
+            <CardTitle className="text-sm font-medium">Gastos Mensuales Planeados</CardTitle>
             <TrendingDown className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
@@ -382,7 +492,7 @@ export default function FinancialDashboardPage() {
               {kpis.monthlyIncome > 0
                 ? ((kpis.monthlyExpenses / kpis.monthlyIncome) * 100).toFixed(1)
                 : 0}
-              % del ingreso
+              % del ingreso planeado
             </p>
           </CardContent>
         </Card>

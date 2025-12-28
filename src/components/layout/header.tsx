@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Menu, LogOut, User } from 'lucide-react';
@@ -14,8 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import type { UserWithoutPassword } from '@/types/auth.types';
-import type { ApiResponse } from '@/types/api.types';
+import { useUserStore } from '@/stores/user-store';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -23,29 +21,14 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
-  const [user, setUser] = useState<UserWithoutPassword | null>(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        const data = (await response.json()) as ApiResponse<UserWithoutPassword>;
-        if (data.success && data.data) {
-          setUser(data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-    };
-
-    fetchUser();
-  }, []);
+  const { user, clearUser } = useUserStore();
 
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
       });
+      clearUser();
       router.push('/login');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -88,7 +71,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative flex items-center gap-2 h-9 px-2 sm:px-4">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs sm:text-sm">
+                  <AvatarFallback className="bg-linear-to-br from-blue-500 to-purple-600 text-white text-xs sm:text-sm">
                     {user ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>

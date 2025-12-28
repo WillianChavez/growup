@@ -33,10 +33,12 @@ import {
 } from 'date-fns';
 import type { Habit, HabitFormData, DailyHabitView, MonthlyHabitData } from '@/types/habit.types';
 import { cn } from '@/lib/utils';
+import { useUserStore } from '@/stores/user-store';
 
 type ActiveTab = 'today' | 'calendar' | 'history';
 
 export default function HabitsPage() {
+  const { user } = useUserStore();
   const [activeTab, setActiveTab] = useState<ActiveTab>('today');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>();
@@ -270,7 +272,7 @@ export default function HabitsPage() {
           </div>
           <div className="hidden lg:block">
             <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
-              ¡Hola, Juan!
+              ¡Hola, {user?.name}!
             </h2>
             <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">
               Llevas una racha increíble este mes.

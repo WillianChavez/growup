@@ -6,42 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import { useUserStore } from '@/stores/user-store';
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoading: userLoading, updateUser } = useUserStore();
   const [name, setName] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setUser(result.data);
-          setName(result.data.name);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user:', error);
-    } finally {
-      setIsLoading(false);
+    if (user) {
+      setName(user.name);
     }
-  };
+  }, [user]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -55,8 +34,11 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        await loadUser();
-        alert('Perfil actualizado exitosamente');
+        const result = await response.json();
+        if (result.success && result.data) {
+          updateUser(result.data);
+          alert('Perfil actualizado exitosamente');
+        }
       }
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -127,7 +109,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (isLoading) {
+  if (userLoading) {
     return (
       <div className="space-y-6">
         <div>

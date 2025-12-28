@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import {
   BookOpen,
   Search,
@@ -30,140 +30,156 @@ interface BookCardItemProps {
   onEdit: (book: Book) => void;
 }
 
-function BookCardItem({ book, progress, onUpdatePage, onPageInput, onEdit }: BookCardItemProps) {
-  const [imageError, setImageError] = useState(false);
+const BookCardItem = memo(
+  ({ book, progress, onUpdatePage, onPageInput, onEdit }: BookCardItemProps) => {
+    const [imageError, setImageError] = useState(false);
+    const [localPage, setLocalPage] = useState(() => book.currentPage.toString());
 
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-50 dark:border-slate-800 flex flex-col md:flex-row gap-6 sm:gap-8 group hover:shadow-2xl hover:shadow-indigo-500/5 transition-all relative overflow-hidden">
-      {/* Portada con Badge de Progreso */}
-      <div className="relative w-full md:w-40 h-60 shrink-0">
-        <div className="w-full h-full rounded-4xl overflow-hidden shadow-2xl relative z-10">
-          {book.coverUrl && !imageError ? (
-            <Image
-              src={book.coverUrl}
-              alt={book.title}
-              fill
-              className="object-cover"
-              unoptimized
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <BookOpen className="h-12 w-12 text-slate-400 dark:text-slate-600" />
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-50 dark:border-slate-800 flex flex-col md:flex-row gap-6 sm:gap-8 group hover:shadow-2xl hover:shadow-indigo-500/5 transition-all relative overflow-hidden">
+        {/* Portada con Badge de Progreso */}
+        <div className="relative w-full md:w-40 h-60 shrink-0">
+          <div className="w-full h-full rounded-4xl overflow-hidden shadow-2xl relative z-10">
+            {book.coverUrl && !imageError ? (
+              <Image
+                src={book.coverUrl}
+                alt={book.title}
+                fill
+                className="object-cover"
+                unoptimized
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <BookOpen className="h-12 w-12 text-slate-400 dark:text-slate-600" />
+              </div>
+            )}
+          </div>
+          <div className="absolute -bottom-3 -right-3 z-20 bg-white dark:bg-slate-900 p-2 rounded-4xl shadow-xl border border-slate-100 dark:border-slate-800">
+            <div
+              className={cn(
+                'w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs',
+                progress === 100
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+              )}
+            >
+              {progress}%
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido e Inteligencia de Actualización */}
+        <div className="flex-1 flex flex-col justify-between py-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-tight tracking-tight mb-1">
+                {book.title}
+              </h3>
+              <p className="text-sm text-slate-400 dark:text-slate-500 font-bold">{book.author}</p>
+            </div>
+            <button
+              onClick={() => onEdit(book)}
+              className="text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"
+            >
+              <MoreVertical size={20} />
+            </button>
+          </div>
+
+          {/* CONTROLES INTELIGENTES */}
+          {book.status === 'reading' && (
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => onUpdatePage(book.id, -1)}
+                    className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-500 dark:hover:text-rose-400 transition-all active:scale-90"
+                  >
+                    <Minus size={18} strokeWidth={3} />
+                  </button>
+
+                  <div className="flex flex-col items-center">
+                    <input
+                      type="number"
+                      value={localPage}
+                      onChange={(e) => {
+                        setLocalPage(e.target.value);
+                      }}
+                      onBlur={(e) => {
+                        onPageInput(book.id, e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          onPageInput(book.id, localPage);
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      min="0"
+                      max={book.pages}
+                      className="w-16 text-center font-black text-xl sm:text-2xl text-slate-800 dark:text-white bg-transparent border-none focus:ring-0 p-0"
+                    />
+                    <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                      Pág. Actual
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => onUpdatePage(book.id, 1)}
+                    className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all active:scale-90"
+                  >
+                    <Plus size={18} strokeWidth={3} />
+                  </button>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-xs font-black text-slate-400 dark:text-slate-500 tracking-tighter uppercase">
+                    Total
+                  </p>
+                  <p className="text-lg font-black text-slate-800 dark:text-white leading-none">
+                    {book.pages}
+                  </p>
+                </div>
+              </div>
+
+              {/* Barra de Progreso Dinámica */}
+              <div className="relative pt-2">
+                <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1">
+                  <div
+                    className="h-full bg-indigo-500 dark:bg-indigo-600 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info para libros no en lectura */}
+          {book.status !== 'reading' && (
+            <div className="mt-6 sm:mt-8 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {book.status === 'completed'
+                    ? 'Completado'
+                    : book.status === 'to-read'
+                      ? 'Por Leer'
+                      : 'Abandonado'}
+                </span>
+                <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                  {book.pages} páginas
+                </span>
+              </div>
+              {book.genre && (
+                <p className="text-xs text-slate-400 dark:text-slate-500">{book.genre}</p>
+              )}
             </div>
           )}
         </div>
-        <div className="absolute -bottom-3 -right-3 z-20 bg-white dark:bg-slate-900 p-2 rounded-4xl shadow-xl border border-slate-100 dark:border-slate-800">
-          <div
-            className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs',
-              progress === 100
-                ? 'bg-emerald-500 text-white'
-                : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
-            )}
-          >
-            {progress}%
-          </div>
-        </div>
       </div>
+    );
+  }
+);
 
-      {/* Contenido e Inteligencia de Actualización */}
-      <div className="flex-1 flex flex-col justify-between py-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-tight tracking-tight mb-1">
-              {book.title}
-            </h3>
-            <p className="text-sm text-slate-400 dark:text-slate-500 font-bold">{book.author}</p>
-          </div>
-          <button
-            onClick={() => onEdit(book)}
-            className="text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"
-          >
-            <MoreVertical size={20} />
-          </button>
-        </div>
-
-        {/* CONTROLES INTELIGENTES */}
-        {book.status === 'reading' && (
-          <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => onUpdatePage(book.id, -1)}
-                  className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-500 dark:hover:text-rose-400 transition-all active:scale-90"
-                >
-                  <Minus size={18} strokeWidth={3} />
-                </button>
-
-                <div className="flex flex-col items-center">
-                  <input
-                    type="number"
-                    value={book.currentPage}
-                    onChange={(e) => onPageInput(book.id, e.target.value)}
-                    min="0"
-                    max={book.pages}
-                    className="w-16 text-center font-black text-xl sm:text-2xl text-slate-800 dark:text-white bg-transparent border-none focus:ring-0 p-0"
-                  />
-                  <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
-                    Pág. Actual
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => onUpdatePage(book.id, 1)}
-                  className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all active:scale-90"
-                >
-                  <Plus size={18} strokeWidth={3} />
-                </button>
-              </div>
-
-              <div className="text-right">
-                <p className="text-xs font-black text-slate-400 dark:text-slate-500 tracking-tighter uppercase">
-                  Total
-                </p>
-                <p className="text-lg font-black text-slate-800 dark:text-white leading-none">
-                  {book.pages}
-                </p>
-              </div>
-            </div>
-
-            {/* Barra de Progreso Dinámica */}
-            <div className="relative pt-2">
-              <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1">
-                <div
-                  className="h-full bg-indigo-500 dark:bg-indigo-600 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(99,102,241,0.4)]"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Info para libros no en lectura */}
-        {book.status !== 'reading' && (
-          <div className="mt-6 sm:mt-8 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                {book.status === 'completed'
-                  ? 'Completado'
-                  : book.status === 'to-read'
-                    ? 'Por Leer'
-                    : 'Abandonado'}
-              </span>
-              <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
-                {book.pages} páginas
-              </span>
-            </div>
-            {book.genre && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">{book.genre}</p>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+BookCardItem.displayName = 'BookCardItem';
 
 export default function ReadingPage() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -189,45 +205,100 @@ export default function ReadingPage() {
     setDialogOpen(true);
   };
 
-  const handleSaveBook = async (data: BookFormData) => {
-    if (editingBook) {
-      await updateBook(editingBook.id, data);
-    } else {
-      await createBook(data);
-    }
-    const booksData = await fetchBooks();
-    setBooks(booksData);
-  };
+  const handleSaveBook = useCallback(
+    async (data: BookFormData) => {
+      if (editingBook) {
+        const updated = await updateBook(editingBook.id, data);
+        if (updated) {
+          // Actualizar solo el libro editado
+          setBooks((prevBooks) => prevBooks.map((b) => (b.id === editingBook.id ? updated : b)));
+        }
+      } else {
+        const created = await createBook(data);
+        if (created) {
+          // Agregar el nuevo libro al estado
+          setBooks((prevBooks) => [...prevBooks, created]);
+        }
+      }
+    },
+    [editingBook, updateBook, createBook]
+  );
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (bookToDelete) {
-      await deleteBook(bookToDelete);
-      const booksData = await fetchBooks();
-      setBooks(booksData);
-      setBookToDelete(null);
+      const success = await deleteBook(bookToDelete);
+      if (success) {
+        // Eliminar solo el libro eliminado del estado
+        setBooks((prevBooks) => prevBooks.filter((b) => b.id !== bookToDelete));
+        setBookToDelete(null);
+      }
     }
-  };
+  }, [bookToDelete, deleteBook]);
 
-  const updatePage = async (bookId: string, delta: number) => {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) return;
+  const updatePage = useCallback(
+    async (bookId: string, delta: number) => {
+      let previousPage = 0;
+      let maxPages = 0;
 
-    const newPage = Math.min(Math.max(0, book.currentPage + delta), book.pages);
-    await updateBook(bookId, { currentPage: newPage });
-    const booksData = await fetchBooks();
-    setBooks(booksData);
-  };
+      // Actualización optimista: actualizar el estado local inmediatamente
+      setBooks((prevBooks) => {
+        const book = prevBooks.find((b) => b.id === bookId);
+        if (!book) return prevBooks;
 
-  const handlePageInput = async (bookId: string, value: string) => {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) return;
+        previousPage = book.currentPage;
+        maxPages = book.pages;
+        const newPage = Math.min(Math.max(0, book.currentPage + delta), book.pages);
 
-    const num = parseInt(value) || 0;
-    const newPage = Math.min(Math.max(0, num), book.pages);
-    await updateBook(bookId, { currentPage: newPage });
-    const booksData = await fetchBooks();
-    setBooks(booksData);
-  };
+        return prevBooks.map((b) => (b.id === bookId ? { ...b, currentPage: newPage } : b));
+      });
+
+      // Actualizar en el backend (sin recargar toda la lista)
+      try {
+        const newPage = Math.min(Math.max(0, previousPage + delta), maxPages);
+        await updateBook(bookId, { currentPage: newPage });
+      } catch (error) {
+        // Si falla, revertir el cambio
+        setBooks((prevBooks) =>
+          prevBooks.map((b) => (b.id === bookId ? { ...b, currentPage: previousPage } : b))
+        );
+        console.error('Error updating page:', error);
+      }
+    },
+    [updateBook]
+  );
+
+  const handlePageInput = useCallback(
+    async (bookId: string, value: string) => {
+      let previousPage = 0;
+      let maxPages = 0;
+      const num = parseInt(value) || 0;
+
+      // Actualización optimista: actualizar el estado local inmediatamente
+      setBooks((prevBooks) => {
+        const book = prevBooks.find((b) => b.id === bookId);
+        if (!book) return prevBooks;
+
+        previousPage = book.currentPage;
+        maxPages = book.pages;
+        const newPage = Math.min(Math.max(0, num), book.pages);
+
+        return prevBooks.map((b) => (b.id === bookId ? { ...b, currentPage: newPage } : b));
+      });
+
+      // Actualizar en el backend (sin recargar toda la lista)
+      try {
+        const newPage = Math.min(Math.max(0, num), maxPages);
+        await updateBook(bookId, { currentPage: newPage });
+      } catch (error) {
+        // Si falla, revertir el cambio
+        setBooks((prevBooks) =>
+          prevBooks.map((b) => (b.id === bookId ? { ...b, currentPage: previousPage } : b))
+        );
+        console.error('Error updating page:', error);
+      }
+    },
+    [updateBook]
+  );
 
   const getProgress = (current: number, total: number) => Math.round((current / total) * 100);
 
@@ -443,7 +514,7 @@ export default function ReadingPage() {
               const progress = getProgress(book.currentPage, book.pages);
               return (
                 <BookCardItem
-                  key={book.id}
+                  key={`${book.id}-${book.currentPage}`}
                   book={book}
                   progress={progress}
                   onUpdatePage={updatePage}

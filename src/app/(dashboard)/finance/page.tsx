@@ -15,6 +15,7 @@ import {
   Menu,
   PieChart,
   CreditCard,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -221,6 +222,13 @@ export default function FinancePage() {
                   Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onClick={() => (window.location.href = '/finance/reports')}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Reportes
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => (window.location.href = '/finance/budget')}
                   className="flex items-center gap-2"
                 >
@@ -253,6 +261,15 @@ export default function FinancePage() {
             >
               <LayoutDashboard className="mr-2 h-4 w-4" />
               Dashboard
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => (window.location.href = '/finance/reports')}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Reportes
             </Button>
             <Button
               variant="outline"

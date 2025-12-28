@@ -13,6 +13,7 @@ import { FinanceChart } from '@/components/finance/finance-chart';
 import { ExpenseCategoryChart } from '@/components/finance/expense-category-chart';
 import { GoalProgressChart } from '@/components/goals/goal-progress-chart';
 import { ReadingProgressChart } from '@/components/books/reading-progress-chart';
+import { FinancialKPIs } from '@/components/dashboard/financial-kpis';
 import type { DashboardData } from '@/services/dashboard.service';
 
 const container = {
@@ -282,6 +283,15 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </motion.div>
+      </motion.div>
+
+      {/* Financial KPIs Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <FinancialKPIs />
       </motion.div>
 
       {/* Charts Section */}

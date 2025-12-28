@@ -40,7 +40,8 @@ export type IncomeCategory =
   | 'business'
   | 'investment'
   | 'rental'
-  | 'other';
+  | 'other'
+  | (string & {});
 export type ExpenseCategory =
   | 'utilities'
   | 'internet'
@@ -51,7 +52,8 @@ export type ExpenseCategory =
   | 'rent'
   | 'education'
   | 'entertainment'
-  | 'other';
+  | 'other'
+  | (string & {});
 
 export interface IncomeSourceFormData {
   name: string;
@@ -81,18 +83,21 @@ export interface RecurringExpenseFormData {
 export interface BudgetSummary {
   totalMonthlyIncome: number;
   totalMonthlyExpenses: number;
+  actualMonthlyExpenses: number; // Added for comparison
   availableBalance: number;
   savingsRate: number; // Porcentaje
   expensesByCategory: {
     category: string;
     categoryName: string;
     amount: number;
+    actualAmount: number; // Added for comparison
     percentage: number;
     isEssential: boolean;
   }[];
   incomeByCategory: {
     category: string;
     amount: number;
+    actualAmount: number; // Added for comparison
     percentage: number;
   }[];
 }

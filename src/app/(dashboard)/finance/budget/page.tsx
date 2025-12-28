@@ -252,7 +252,8 @@ export default function BudgetPage() {
                               )}
                             </div>
                             <p className="text-sm text-slate-500 mt-0.5">
-                              {getFrequencyLabel(source.frequency)}
+                              {getFrequencyLabel(source.frequency)} •{' '}
+                              <span className="text-slate-400 capitalize">{source.category}</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
@@ -382,7 +383,8 @@ export default function BudgetPage() {
                               </Badge>
                             </div>
                             <p className="text-sm text-slate-500 mt-0.5">
-                              {getFrequencyLabel(expense.frequency)}
+                              {getFrequencyLabel(expense.frequency)} •{' '}
+                              <span className="text-slate-400 capitalize">{expense.category}</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-4">

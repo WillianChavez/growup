@@ -38,6 +38,8 @@ model User {
   debts                 Debt[]
   goals                 Goal[]
   journals              DailyJournal[]
+  accounts              Account[]
+  financialSnapshots    FinancialSnapshot[]
 }
 
 model Habit {
@@ -146,14 +148,19 @@ model Transaction {
   isRecurring        Boolean  @default(false)
   recurringFrequency String? // monthly, weekly, yearly
   tags               String? // JSON array
+  accountId          String? // Cuenta asociada (opcional para v2)
+  flowType           String? // operating, investing, financing
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category TransactionCategory @relation(fields: [categoryId], references: [id])
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        TransactionCategory  @relation(fields: [categoryId], references: [id])
+  account         Account?             @relation(fields: [accountId], references: [id])
+  accountLinks    AccountTransaction[]
 
   @@index([userId, date])
   @@index([userId, type, categoryId])
+  @@index([accountId])
 }
 
 model TransactionCategory {
@@ -307,4 +314,76 @@ model DailyJournal {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+}
+
+// ==================== FINANCIAL REPORTS MODELS (v2) ====================
+
+model Account {
+  id             String   @id @default(uuid())
+  userId         String
+  name           String // "Banco X", "Efectivo", "Tarjeta Y"
+  type           String // checking, savings, cash, credit_card
+  currency       String   @default("USD")
+  initialBalance Float    @default(0)
+  currentBalance Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions        Transaction[]
+  accountTransactions AccountTransaction[]
+  balances            AccountBalance[]
+
+  @@index([userId])
+  @@index([userId, isActive])
+}
+
+model AccountTransaction {
+  id            String   @id @default(uuid())
+  transactionId String
+  accountId     String
+  amount        Float // Puede ser negativo para gastos
+  flowType      String // operating, investing, financing
+  createdAt     DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account     Account     @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([transactionId])
+}
+
+model FinancialSnapshot {
+  id                   String   @id @default(uuid())
+  userId               String
+  date                 DateTime // Fin de mes/período
+  totalAssets          Float
+  liquidAssets         Float
+  illiquidAssets       Float
+  totalLiabilities     Float
+  shortTermLiabilities Float
+  longTermLiabilities  Float
+  equity               Float // totalAssets - totalLiabilities
+  cashBalance          Float // Efectivo disponible
+  netWorth             Float // Same as equity
+  createdAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model AccountBalance {
+  id        String   @id @default(uuid())
+  accountId String
+  date      DateTime
+  balance   Float
+  createdAt DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, date])
+  @@index([accountId, date])
 }
