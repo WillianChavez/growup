@@ -197,7 +197,10 @@ export function RecurringExpenseDialog({
                   <ChevronDown size={16} className="text-slate-400" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-4" align="start">
+              <PopoverContent
+                className="w-80 p-4 max-h-[400px] overflow-hidden flex flex-col"
+                align="start"
+              >
                 <TransactionCategorySelector
                   value={selectedCategory?.id || ''}
                   onChange={(categoryId: string) => {

@@ -37,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { EmojiPickerComponent } from '@/components/ui/emoji-picker';
 import { useTransactionCategories } from '@/hooks/useTransactionCategories';
 import type { TransactionCategory, TransactionType } from '@/types/finance.types';
@@ -81,7 +82,6 @@ const emojiToIcon: Record<string, React.ComponentType<{ size?: number; className
   '💧': Droplets,
 };
 
-// Icono por defecto
 const DefaultIcon = Wallet;
 
 export function TransactionCategorySelector({ value, onChange, type }: CategorySelectorProps) {
@@ -117,45 +117,46 @@ export function TransactionCategorySelector({ value, onChange, type }: CategoryS
     }
   };
 
-  // Obtener icono para una categoría
   const getCategoryIcon = (emoji: string) => {
     return emojiToIcon[emoji] || DefaultIcon;
   };
 
   return (
-    <>
-      <div className="space-y-4">
-        {/* Lista de categorías - Grid limpio */}
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+    <div
+      onWheel={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      className="h-[400px] min-h-0 flex-1 overflow-y-scroll"
+    >
+      <ScrollArea>
+        <div className="space-y-2 p-2">
           {categories.map((cat) => {
             const IconComponent = getCategoryIcon(cat.emoji);
             const isSelected = value === cat.id;
             return (
-              <button
+              <div
                 key={cat.id}
-                type="button"
                 onClick={() => onChange(cat.id)}
                 className={cn(
-                  'flex flex-col items-center gap-2 p-3 rounded-xl transition-all',
+                  'flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer',
                   isSelected
-                    ? 'bg-indigo-100 dark:bg-indigo-900/30 border-2 border-indigo-500 dark:border-indigo-400'
-                    : 'bg-slate-50 dark:bg-slate-800 border-2 border-transparent hover:bg-slate-100 dark:hover:bg-slate-700'
+                    ? 'bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-500 dark:border-indigo-400'
+                    : 'bg-slate-50 dark:bg-slate-800 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700'
                 )}
               >
                 <div
                   className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
+                    'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
                     isSelected
                       ? 'bg-indigo-500 dark:bg-indigo-600 text-white'
                       : 'bg-white dark:bg-slate-900'
                   )}
                   style={!isSelected ? { color: cat.color } : undefined}
                 >
-                  <IconComponent size={24} className={isSelected ? 'text-white' : ''} />
+                  <IconComponent size={20} className={isSelected ? 'text-white' : ''} />
                 </div>
                 <span
                   className={cn(
-                    'text-xs font-bold text-center line-clamp-1',
+                    'text-sm font-medium flex-1',
                     isSelected
                       ? 'text-indigo-600 dark:text-indigo-400'
                       : 'text-slate-700 dark:text-slate-300'
@@ -163,23 +164,21 @@ export function TransactionCategorySelector({ value, onChange, type }: CategoryS
                 >
                   {cat.name}
                 </span>
-              </button>
+              </div>
             );
           })}
+
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-dashed border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all mt-4"
+          >
+            <Plus size={18} />
+            <span className="text-sm font-medium">Nueva Categoría</span>
+          </button>
         </div>
+      </ScrollArea>
 
-        {/* Botón para crear nueva categoría */}
-        <button
-          type="button"
-          onClick={() => setDialogOpen(true)}
-          className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-        >
-          <Plus size={18} />
-          <span className="text-sm font-bold">Nueva Categoría</span>
-        </button>
-      </div>
-
-      {/* Dialog para crear nueva categoría */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -222,6 +221,6 @@ export function TransactionCategorySelector({ value, onChange, type }: CategoryS
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
