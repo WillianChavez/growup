@@ -20,6 +20,7 @@ export const goalSchema = z.object({
   milestones: z
     .array(
       z.object({
+        id: z.string().optional(),
         title: z.string().min(1, 'El título del milestone es requerido'),
         completed: z.boolean().default(false),
         completedAt: z.coerce.date().optional().nullable(),

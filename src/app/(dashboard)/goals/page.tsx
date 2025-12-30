@@ -142,11 +142,23 @@ export default function GoalsPage() {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal || !goal.milestones) return;
 
-    const updatedMilestones = goal.milestones.map((m) =>
-      m.id === milestoneId
-        ? { ...m, completed: !m.completed, completedAt: !m.completed ? new Date() : undefined }
-        : m
-    );
+    // Normalizar milestones: asegurar que todos tengan IDs
+    const normalizedMilestones = goal.milestones.map((m, idx) => ({
+      ...m,
+      id: m.id || `${goal.id}-milestone-${idx}`,
+    }));
+
+    // Encontrar el milestone y actualizar su estado
+    const updatedMilestones = normalizedMilestones.map((m) => {
+      if (m.id === milestoneId) {
+        return {
+          ...m,
+          completed: !m.completed,
+          completedAt: !m.completed ? new Date() : undefined,
+        };
+      }
+      return m;
+    });
 
     const doneCount = updatedMilestones.filter((m) => m.completed).length;
     const newProgress =
@@ -167,11 +179,25 @@ export default function GoalsPage() {
       )
     );
 
-    // Update in server
+    // Update in server - enviar array completo con todos los milestones
     try {
-      await updateGoal(goalId, { milestones: updatedMilestones, progress: newProgress });
+      const response = await fetch(`/api/goals/${goalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          milestones: updatedMilestones,
+          progress: newProgress,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to update milestone');
+      const result = await response.json();
+      // Actualizar con la respuesta del servidor para sincronizar
+      if (result.success && result.data) {
+        setGoals((prev) => prev.map((g) => (g.id === goalId ? result.data : g)));
+      }
     } catch (error) {
       console.error('Error updating milestone:', error);
+      // Revertir cambios en caso de error
       const goalsData = await fetchGoals();
       setGoals(goalsData);
     }
@@ -430,17 +456,26 @@ export default function GoalsPage() {
                     </div>
 
                     {/* HITOS (Sub-tareas) */}
-                    {milestones.length > 0 && (
-                      <div className="space-y-3 mb-6 sm:mb-8">
-                        {milestones.map((milestone, milestoneIndex) => {
-                          const milestoneId =
-                            milestone.id || `${goal.id}-milestone-${milestoneIndex}`;
-                          return (
-                            <div
-                              key={milestoneId}
-                              onClick={() => toggleMilestone(goal.id, milestoneId)}
+                    {(() => {
+                      // Normalizar milestones: asegurar que todos tengan IDs
+                      const normalizedMilestones = milestones.map((m, idx) => ({
+                        ...m,
+                        id: m.id || `${goal.id}-milestone-${idx}`,
+                      }));
+
+                      return normalizedMilestones.length > 0 ? (
+                        <div className="space-y-3 mb-6 sm:mb-8">
+                          {normalizedMilestones.map((milestone) => (
+                            <button
+                              key={milestone.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void toggleMilestone(goal.id, milestone.id);
+                              }}
                               className={cn(
-                                'flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer',
+                                'w-full flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer text-left',
                                 milestone.completed
                                   ? 'bg-slate-50 dark:bg-slate-800 border-transparent opacity-60'
                                   : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-100 dark:hover:border-indigo-900/50'
@@ -466,11 +501,11 @@ export default function GoalsPage() {
                               >
                                 {milestone.title}
                               </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
 
                   {/* BARRA DE PROGRESO INFERIOR */}

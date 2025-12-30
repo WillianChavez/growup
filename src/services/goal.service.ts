@@ -24,9 +24,18 @@ export class GoalService {
 
     if (!goal) return null;
 
+    let milestones = goal.milestones ? JSON.parse(goal.milestones) : null;
+    // Asegurar que todos los milestones tengan IDs
+    if (milestones && Array.isArray(milestones)) {
+      milestones = milestones.map((m: Milestone) => ({
+        ...m,
+        id: m.id || crypto.randomUUID(),
+      }));
+    }
+
     return {
       ...goal,
-      milestones: goal.milestones ? JSON.parse(goal.milestones) : null,
+      milestones,
     } as Goal;
   }
 
@@ -42,10 +51,20 @@ export class GoalService {
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return goals.map((goal) => ({
-      ...goal,
-      milestones: goal.milestones ? JSON.parse(goal.milestones) : null,
-    })) as Goal[];
+    return goals.map((goal) => {
+      let milestones = goal.milestones ? JSON.parse(goal.milestones) : null;
+      // Asegurar que todos los milestones tengan IDs
+      if (milestones && Array.isArray(milestones)) {
+        milestones = milestones.map((m: Milestone) => ({
+          ...m,
+          id: m.id || crypto.randomUUID(),
+        }));
+      }
+      return {
+        ...goal,
+        milestones,
+      };
+    }) as Goal[];
   }
 
   static async update(
@@ -62,11 +81,20 @@ export class GoalService {
     // If completing the goal, set completedAt
     const isCompleting = data.status === 'completed' && goal.status !== 'completed';
 
+    // Asegurar que todos los milestones tengan IDs únicos
+    let milestonesToSave = data.milestones;
+    if (milestonesToSave) {
+      milestonesToSave = milestonesToSave.map((m) => ({
+        ...m,
+        id: m.id || crypto.randomUUID(),
+      }));
+    }
+
     const updated = await prisma.goal.update({
       where: { id },
       data: {
         ...data,
-        milestones: data.milestones ? JSON.stringify(data.milestones) : undefined,
+        milestones: milestonesToSave ? JSON.stringify(milestonesToSave) : undefined,
         completedAt: isCompleting ? new Date() : data.completedAt,
       },
     });
