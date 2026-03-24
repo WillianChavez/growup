@@ -4,6 +4,7 @@ import { GoalService } from '@/services/goal.service';
 import { BookService } from '@/services/book.service';
 import { startOfDay, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import type { MonthlyTransactionGroup } from '@/types/finance.types';
+import { normalizeMoney, sumAsMoney } from '@/lib/money';
 
 export interface DashboardStats {
   habitsToday: {
@@ -93,27 +94,36 @@ export class DashboardService {
     const monthStart = startOfMonth(today);
     const monthEnd = endOfMonth(today);
 
-    const monthlyIncome = transactions
-      .filter((t) => {
-        const transactionDate = new Date(t.date);
-        return t.type === 'income' && transactionDate >= monthStart && transactionDate <= monthEnd;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
+    const monthlyIncome = sumAsMoney(
+      transactions
+        .filter((t) => {
+          const transactionDate = new Date(t.date);
+          return (
+            t.type === 'income' && transactionDate >= monthStart && transactionDate <= monthEnd
+          );
+        })
+        .map((t) => t.amount)
+    );
 
-    const monthlyExpenses = transactions
-      .filter((t) => {
-        const transactionDate = new Date(t.date);
-        return t.type === 'expense' && transactionDate >= monthStart && transactionDate <= monthEnd;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
+    const monthlyExpenses = sumAsMoney(
+      transactions
+        .filter((t) => {
+          const transactionDate = new Date(t.date);
+          return (
+            t.type === 'expense' && transactionDate >= monthStart && transactionDate <= monthEnd
+          );
+        })
+        .map((t) => t.amount)
+    );
 
-    const monthlySavings = monthlyIncome - monthlyExpenses;
+    const monthlySavings = normalizeMoney(monthlyIncome - monthlyExpenses);
     const savingsRate = monthlyIncome > 0 ? (monthlySavings / monthlyIncome) * 100 : 0;
 
     // Balance total
-    const totalBalance =
-      transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
-      transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const totalBalance = normalizeMoney(
+      sumAsMoney(transactions.filter((t) => t.type === 'income').map((t) => t.amount)) -
+        sumAsMoney(transactions.filter((t) => t.type === 'expense').map((t) => t.amount))
+    );
 
     // Estadísticas de lectura
     const booksReading = books.filter((b) => b.status === 'reading').length;

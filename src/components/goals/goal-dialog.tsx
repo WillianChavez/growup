@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Calendar as CalendarIcon, Plus, X } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, GripVertical, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,6 +68,10 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
   });
 
   const [newMilestone, setNewMilestone] = useState('');
+  const [draggedMilestoneIndex, setDraggedMilestoneIndex] = useState<number | null>(null);
+
+  const formatDateInput = (date?: Date | null) =>
+    date ? format(new Date(date), 'yyyy-MM-dd') : '';
 
   // Actualizar formData cuando cambie el goal o se abra el diálogo
   useEffect(() => {
@@ -82,6 +86,9 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
           goal?.milestones?.map((m) => ({
             title: m.title,
             completed: m.completed,
+            status: m.status,
+            startDate: m.startDate,
+            targetDate: m.targetDate,
             completedAt: m.completedAt,
           })) || [],
       });
@@ -98,6 +105,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
           {
             title: newMilestone.trim(),
             completed: false,
+            status: 'not-started',
           },
         ],
       });
@@ -109,6 +117,21 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
     setFormData({
       ...formData,
       milestones: formData.milestones?.filter((_, i) => i !== index) || [],
+    });
+  };
+
+  const moveMilestone = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+
+    setFormData((current) => {
+      const milestones = [...(current.milestones || [])];
+      const [moved] = milestones.splice(fromIndex, 1);
+      milestones.splice(toIndex, 0, moved);
+
+      return {
+        ...current,
+        milestones,
+      };
     });
   };
 
@@ -206,7 +229,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={formData.targetDate}
+                    selected={formData.targetDate ?? undefined}
                     onSelect={(date) => date && setFormData({ ...formData, targetDate: date })}
                     initialFocus
                   />
@@ -234,17 +257,85 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
                 {formData.milestones?.map((milestone, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded"
+                    draggable
+                    onDragStart={() => setDraggedMilestoneIndex(index)}
+                    onDragEnd={() => setDraggedMilestoneIndex(null)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (draggedMilestoneIndex === null) return;
+                      moveMilestone(draggedMilestoneIndex, index);
+                      setDraggedMilestoneIndex(null);
+                    }}
+                    className={cn(
+                      'space-y-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-900',
+                      draggedMilestoneIndex === index && 'opacity-60'
+                    )}
                   >
-                    <span className="flex-1">{milestone.title}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveMilestone(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <span className="cursor-grab text-slate-400 dark:text-slate-500">
+                        <GripVertical className="h-4 w-4" />
+                      </span>
+                      <span className="flex-1 text-sm font-medium">{milestone.title}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveMilestone(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Inicio</Label>
+                        <Input
+                          type="date"
+                          value={formatDateInput(milestone.startDate)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setFormData((current) => ({
+                              ...current,
+                              milestones:
+                                current.milestones?.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? {
+                                        ...item,
+                                        startDate: value
+                                          ? new Date(`${value}T00:00:00`)
+                                          : undefined,
+                                      }
+                                    : item
+                                ) || [],
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Fin</Label>
+                        <Input
+                          type="date"
+                          value={formatDateInput(milestone.targetDate)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setFormData((current) => ({
+                              ...current,
+                              milestones:
+                                current.milestones?.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? {
+                                        ...item,
+                                        targetDate: value
+                                          ? new Date(`${value}T23:59:59`)
+                                          : undefined,
+                                      }
+                                    : item
+                                ) || [],
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

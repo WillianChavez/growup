@@ -7,6 +7,7 @@ import type {
   FinancialDashboardKPIs,
 } from '@/types/financial.types';
 import { BudgetService } from './budget.service';
+import { normalizeMoney, sumAsMoney, toCents, fromCents } from '@/lib/money';
 
 export class FinancialService {
   // ==================== ASSETS ====================
@@ -21,7 +22,7 @@ export class FinancialService {
 
   static async createAsset(userId: string, data: AssetFormData): Promise<Asset> {
     const asset = await prisma.asset.create({
-      data: { userId, ...data },
+      data: { userId, ...data, value: normalizeMoney(data.value) },
     });
     return asset as Asset;
   }
@@ -33,7 +34,10 @@ export class FinancialService {
   ): Promise<Asset> {
     const asset = await prisma.asset.update({
       where: { id, userId },
-      data,
+      data: {
+        ...data,
+        ...(data.value !== undefined && { value: normalizeMoney(data.value) }),
+      },
     });
     return asset as Asset;
   }
@@ -63,6 +67,9 @@ export class FinancialService {
       data: {
         userId,
         ...data,
+        totalAmount: normalizeMoney(data.totalAmount),
+        remainingAmount: normalizeMoney(data.remainingAmount),
+        monthlyPayment: normalizeMoney(data.monthlyPayment),
         status: 'active',
       },
     });
@@ -72,7 +79,16 @@ export class FinancialService {
   static async updateDebt(id: string, userId: string, data: Partial<DebtFormData>): Promise<Debt> {
     const debt = await prisma.debt.update({
       where: { id, userId },
-      data,
+      data: {
+        ...data,
+        ...(data.totalAmount !== undefined && { totalAmount: normalizeMoney(data.totalAmount) }),
+        ...(data.remainingAmount !== undefined && {
+          remainingAmount: normalizeMoney(data.remainingAmount),
+        }),
+        ...(data.monthlyPayment !== undefined && {
+          monthlyPayment: normalizeMoney(data.monthlyPayment),
+        }),
+      },
     });
     return debt as Debt;
   }
@@ -83,7 +99,7 @@ export class FinancialService {
       data: {
         status: 'paid',
         paidDate: new Date(),
-        remainingAmount: 0,
+        remainingAmount: normalizeMoney(0),
       },
     });
     return debt as Debt;
@@ -105,34 +121,34 @@ export class FinancialService {
     ]);
 
     // Assets
-    const liquidAssets = assets
-      .filter((a) => a.type === 'liquid')
-      .reduce((sum, a) => sum + a.value, 0);
-    const illiquidAssets = assets
-      .filter((a) => a.type === 'illiquid')
-      .reduce((sum, a) => sum + a.value, 0);
-    const totalAssets = liquidAssets + illiquidAssets;
+    const liquidAssets = sumAsMoney(assets.filter((a) => a.type === 'liquid').map((a) => a.value));
+    const illiquidAssets = sumAsMoney(
+      assets.filter((a) => a.type === 'illiquid').map((a) => a.value)
+    );
+    const totalAssets = normalizeMoney(liquidAssets + illiquidAssets);
 
     // Debts
-    const totalDebt = activeDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
-    const monthlyDebts = activeDebts.reduce((sum, d) => sum + d.monthlyPayment, 0);
-    const consumptionDebtPayment = activeDebts
-      .filter((d) => d.type === 'consumption')
-      .reduce((sum, d) => sum + d.monthlyPayment, 0);
+    const totalDebt = sumAsMoney(activeDebts.map((d) => d.remainingAmount));
+    const monthlyDebts = sumAsMoney(activeDebts.map((d) => d.monthlyPayment));
+    const consumptionDebtPayment = sumAsMoney(
+      activeDebts.filter((d) => d.type === 'consumption').map((d) => d.monthlyPayment)
+    );
 
     // Debts by type
     const debtsByType = activeDebts.reduce(
       (acc, debt) => {
         const existing = acc.find((item) => item.type === debt.type);
         if (existing) {
-          existing.amount += debt.remainingAmount;
-          existing.monthlyPayment += debt.monthlyPayment;
+          existing.amount = fromCents(toCents(existing.amount) + toCents(debt.remainingAmount));
+          existing.monthlyPayment = fromCents(
+            toCents(existing.monthlyPayment) + toCents(debt.monthlyPayment)
+          );
         } else {
           acc.push({
             type: this.getDebtTypeLabel(debt.type),
-            amount: debt.remainingAmount,
+            amount: normalizeMoney(debt.remainingAmount),
             percentage: 0,
-            monthlyPayment: debt.monthlyPayment,
+            monthlyPayment: normalizeMoney(debt.monthlyPayment),
           });
         }
         return acc;

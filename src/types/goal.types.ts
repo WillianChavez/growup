@@ -32,6 +32,19 @@ export interface Milestone {
   id: string;
   title: string;
   completed: boolean;
+  status?: Exclude<GoalStatus, 'abandoned'>;
+  startDate?: Date;
+  targetDate?: Date;
+  completedAt?: Date;
+}
+
+export interface GoalMilestoneInput {
+  id?: string;
+  title: string;
+  completed: boolean;
+  status?: Exclude<GoalStatus, 'abandoned'>;
+  startDate?: Date;
+  targetDate?: Date;
   completedAt?: Date;
 }
 
@@ -41,9 +54,10 @@ export interface GoalFormData {
   category: GoalCategory;
   priority: GoalPriority;
   status?: GoalStatus;
-  targetDate?: Date;
+  targetDate?: Date | null;
   progress?: number;
-  milestones?: Omit<Milestone, 'id'>[];
+  milestones?: GoalMilestoneInput[];
+  completedAt?: Date | null;
 }
 
 export interface GoalStats {

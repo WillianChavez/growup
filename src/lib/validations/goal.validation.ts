@@ -23,6 +23,9 @@ export const goalSchema = z.object({
         id: z.string().optional(),
         title: z.string().min(1, 'El título del milestone es requerido'),
         completed: z.boolean().default(false),
+        status: z.enum(['not-started', 'in-progress', 'completed']).optional(),
+        startDate: z.coerce.date().optional().nullable(),
+        targetDate: z.coerce.date().optional().nullable(),
         completedAt: z.coerce.date().optional().nullable(),
       })
     )

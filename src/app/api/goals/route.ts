@@ -77,6 +77,9 @@ export async function POST(request: NextRequest) {
             id: crypto.randomUUID(),
             title: m.title,
             completed: m.completed,
+            status: m.status,
+            startDate: m.startDate ?? undefined,
+            targetDate: m.targetDate ?? undefined,
             completedAt: m.completedAt ?? undefined,
           }))
         : null,

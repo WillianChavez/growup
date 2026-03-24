@@ -5,6 +5,10 @@ export interface User {
   password: string;
   createdAt: Date;
   updatedAt: Date;
+  timezone?: string;
+  currency?: string;
+  theme?: string;
+  settings?: string | null;
 }
 
 export interface UserWithoutPassword {
@@ -13,6 +17,10 @@ export interface UserWithoutPassword {
   name: string;
   createdAt: Date;
   updatedAt: Date;
+  timezone?: string;
+  currency?: string;
+  theme?: string;
+  settings?: string | null;
 }
 
 export interface LoginCredentials {

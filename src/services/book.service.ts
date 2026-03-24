@@ -2,32 +2,68 @@ import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import type { Book, BookQuote, ReadingStats } from '@/types/book.types';
 import { getYearRange, getMonthRange } from '@/lib/date-utils';
+import { normalizeTagNames } from '@/lib/entity-tags';
+
+type BookRecord = Prisma.BookGetPayload<{
+  include: {
+    tags: {
+      orderBy: {
+        order: 'asc';
+      };
+    };
+  };
+}>;
+
+function mapBookRecord(book: BookRecord): Book {
+  return {
+    ...book,
+    tags: book.tags.map((tag) => tag.name),
+  } as Book;
+}
 
 export class BookService {
   static async create(
     userId: string,
     data: Omit<Book, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
   ): Promise<Book> {
-    return prisma.book.create({
+    const tags = normalizeTagNames(data.tags);
+
+    const book = await prisma.book.create({
       data: {
         ...data,
         userId,
-        tags: data.tags ? JSON.stringify(data.tags) : null,
+        tags: tags.length
+          ? {
+              create: tags.map((name, index) => ({
+                name,
+                order: index,
+              })),
+            }
+          : undefined,
       },
-    }) as Promise<Book>;
+      include: {
+        tags: {
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    return mapBookRecord(book);
   }
 
   static async findById(id: string, userId: string): Promise<Book | null> {
     const book = await prisma.book.findFirst({
       where: { id, userId },
+      include: {
+        tags: {
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
     if (!book) return null;
 
-    return {
-      ...book,
-      tags: book.tags ? JSON.parse(book.tags) : null,
-    } as Book;
+    return mapBookRecord(book);
   }
 
   static async findAllByUser(userId: string, status?: string): Promise<Book[]> {
@@ -40,12 +76,14 @@ export class BookService {
     const books = await prisma.book.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
+      include: {
+        tags: {
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
-    return books.map((book) => ({
-      ...book,
-      tags: book.tags ? JSON.parse(book.tags) : null,
-    })) as Book[];
+    return books.map(mapBookRecord);
   }
 
   static async update(
@@ -59,18 +97,35 @@ export class BookService {
 
     if (!book) return null;
 
+    const tags = data.tags !== undefined ? normalizeTagNames(data.tags) : null;
+
     const updated = await prisma.book.update({
       where: { id },
       data: {
         ...data,
-        tags: data.tags ? JSON.stringify(data.tags) : undefined,
+        tags:
+          tags !== null
+            ? {
+                deleteMany: {},
+                ...(tags.length
+                  ? {
+                      create: tags.map((name, index) => ({
+                        name,
+                        order: index,
+                      })),
+                    }
+                  : {}),
+              }
+            : undefined,
+      },
+      include: {
+        tags: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
-    return {
-      ...updated,
-      tags: updated.tags ? JSON.parse(updated.tags) : null,
-    } as Book;
+    return mapBookRecord(updated);
   }
 
   static async delete(id: string, userId: string): Promise<boolean> {
@@ -104,12 +159,14 @@ export class BookService {
         status: isCompleted ? 'completed' : book.status,
         endDate: isCompleted ? new Date() : book.endDate,
       },
+      include: {
+        tags: {
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
-    return {
-      ...updated,
-      tags: updated.tags ? JSON.parse(updated.tags) : null,
-    } as Book;
+    return mapBookRecord(updated);
   }
 
   // Quotes

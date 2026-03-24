@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   CheckCircle2,
+  ClipboardCheck,
   BookOpen,
   Wallet,
   Target,
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Check-in', href: '/check-in', icon: ClipboardCheck },
   { name: 'Hábitos', href: '/habits', icon: CheckCircle2 },
   { name: 'Lectura', href: '/reading', icon: BookOpen },
   { name: 'Finanzas', href: '/finance', icon: Wallet },

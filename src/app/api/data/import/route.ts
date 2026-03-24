@@ -1,30 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/jwt';
 import { prisma } from '@/lib/db';
+import type { ApiResponse } from '@/types/api.types';
+import { getRequestAuth } from '@/lib/api-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { importPayloadSchema } from '@/lib/validations/import.validation';
+import { logError, logWarn } from '@/lib/logger';
+import { normalizeMoney } from '@/lib/money';
 
 export async function POST(request: NextRequest) {
+  const route = '/api/data/import';
+  const method = 'POST';
+
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
     }
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+    const rateLimit = checkRateLimit('data:import', auth.payload.userId || auth.ip, {
+      windowMs: 10 * 60 * 1000,
+      maxRequests: 5,
+    });
+
+    if (!rateLimit.allowed) {
+      logWarn('Rate limit exceeded for import endpoint', {
+        route,
+        method,
+        userId: auth.payload.userId,
+        ip: auth.ip,
+      });
+
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Demasiadas importaciones en poco tiempo. Intenta nuevamente más tarde.',
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+        }
+      );
     }
 
-    const importData = await request.json();
-
-    // Validar estructura del archivo
-    if (!importData.data || !importData.version) {
-      return NextResponse.json({ error: 'Formato de archivo inválido' }, { status: 400 });
+    const contentLengthHeader = request.headers.get('content-length');
+    const contentLength = contentLengthHeader ? Number(contentLengthHeader) : 0;
+    const maxImportPayloadBytes = 2 * 1024 * 1024;
+    if (contentLength > maxImportPayloadBytes) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: 'Archivo demasiado grande. Máximo permitido: 2MB',
+        },
+        { status: 413 }
+      );
     }
 
-    const { data } = importData;
+    const importDataRaw = await request.json();
+
+    const validation = importPayloadSchema.safeParse(importDataRaw);
+    if (!validation.success) {
+      logWarn('Import payload validation failed', {
+        route,
+        method,
+        userId: auth.payload.userId,
+        ip: auth.ip,
+        details: {
+          firstIssue: validation.error.issues[0]?.message || 'unknown_validation_error',
+        },
+      });
+
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: validation.error.issues[0]?.message || 'Formato de importación inválido',
+        },
+        { status: 400 }
+      );
+    }
+
+    const { data } = validation.data;
+    const userId = auth.payload.userId;
 
     // Importar datos en transacción (agregar, no eliminar)
     await prisma.$transaction(async (tx) => {
@@ -40,7 +98,7 @@ export async function POST(request: NextRequest) {
           const oldId = category.id;
           const newCategory = await tx.habitCategory.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               name: category.name,
               emoji: category.emoji,
               color: category.color,
@@ -56,7 +114,7 @@ export async function POST(request: NextRequest) {
           const oldId = category.id;
           const newCategory = await tx.transactionCategory.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               name: category.name,
               emoji: category.emoji,
               type: category.type,
@@ -75,7 +133,7 @@ export async function POST(request: NextRequest) {
           if (newCategoryId) {
             const newHabit = await tx.habit.create({
               data: {
-                userId: payload.userId,
+                userId: userId,
                 title: habit.title,
                 description: habit.description,
                 emoji: habit.emoji,
@@ -96,7 +154,7 @@ export async function POST(request: NextRequest) {
           if (newHabitId) {
             await tx.habitEntry.create({
               data: {
-                userId: payload.userId,
+                userId: userId,
                 habitId: newHabitId,
                 date: new Date(entry.date),
                 completed: entry.completed,
@@ -114,7 +172,7 @@ export async function POST(request: NextRequest) {
           const oldId = book.id;
           const newBook = await tx.book.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               title: book.title,
               author: book.author,
               pages: book.pages,
@@ -128,6 +186,14 @@ export async function POST(request: NextRequest) {
               genre: book.genre,
               startDate: book.startDate ? new Date(book.startDate) : null,
               endDate: book.endDate ? new Date(book.endDate) : null,
+              tags: book.tags?.length
+                ? {
+                    create: book.tags.map((name, index) => ({
+                      name,
+                      order: index,
+                    })),
+                  }
+                : undefined,
             },
           });
           bookIdMap.set(oldId, newBook.id);
@@ -141,7 +207,7 @@ export async function POST(request: NextRequest) {
           if (newBookId) {
             await tx.bookQuote.create({
               data: {
-                userId: payload.userId,
+                userId: userId,
                 bookId: newBookId,
                 quote: quote.quote,
                 pageNumber: quote.pageNumber,
@@ -164,7 +230,7 @@ export async function POST(request: NextRequest) {
           if (!finalCategoryId) {
             const defaultCategory = await tx.transactionCategory.findFirst({
               where: {
-                userId: payload.userId,
+                userId: userId,
                 name: 'Sin categoría',
               },
             });
@@ -174,7 +240,7 @@ export async function POST(request: NextRequest) {
             } else {
               const newDefaultCategory = await tx.transactionCategory.create({
                 data: {
-                  userId: payload.userId,
+                  userId: userId,
                   name: 'Sin categoría',
                   emoji: '📦',
                   type: 'both',
@@ -187,8 +253,8 @@ export async function POST(request: NextRequest) {
 
           await tx.transaction.create({
             data: {
-              userId: payload.userId,
-              amount: transaction.amount,
+              userId: userId,
+              amount: normalizeMoney(transaction.amount),
               description: transaction.description,
               type: transaction.type,
               date: new Date(transaction.date),
@@ -196,7 +262,14 @@ export async function POST(request: NextRequest) {
               notes: transaction.notes,
               isRecurring: transaction.isRecurring || false,
               recurringFrequency: transaction.recurringFrequency,
-              tags: transaction.tags,
+              tags: transaction.tags?.length
+                ? {
+                    create: transaction.tags.map((name, index) => ({
+                      name,
+                      order: index,
+                    })),
+                  }
+                : undefined,
             },
           });
         }
@@ -207,7 +280,7 @@ export async function POST(request: NextRequest) {
         for (const goal of data.goals) {
           await tx.goal.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               title: goal.title,
               description: goal.description,
               category: goal.category || 'personal',
@@ -215,7 +288,21 @@ export async function POST(request: NextRequest) {
               targetDate: goal.targetDate ? new Date(goal.targetDate) : null,
               status: goal.status,
               progress: goal.progress,
-              milestones: goal.milestones,
+              milestones: goal.milestones?.length
+                ? {
+                    create: goal.milestones.map((milestone, index) => ({
+                      id: milestone.id,
+                      title: milestone.title,
+                      completed: milestone.completed,
+                      status:
+                        milestone.status || (milestone.completed ? 'completed' : 'not-started'),
+                      startDate: milestone.startDate ? new Date(milestone.startDate) : null,
+                      targetDate: milestone.targetDate ? new Date(milestone.targetDate) : null,
+                      completedAt: milestone.completedAt ? new Date(milestone.completedAt) : null,
+                      order: index,
+                    })),
+                  }
+                : undefined,
               completedAt: goal.completedAt ? new Date(goal.completedAt) : null,
             },
           });
@@ -227,9 +314,9 @@ export async function POST(request: NextRequest) {
         for (const source of data.incomeSources) {
           await tx.incomeSource.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               name: source.name,
-              amount: source.amount,
+              amount: normalizeMoney(source.amount),
               frequency: source.frequency,
               category: source.category,
               isPrimary: source.isPrimary,
@@ -247,9 +334,9 @@ export async function POST(request: NextRequest) {
         for (const expense of data.recurringExpenses) {
           await tx.recurringExpense.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               name: expense.name,
-              amount: expense.amount,
+              amount: normalizeMoney(expense.amount),
               frequency: expense.frequency,
               category: expense.category,
               dueDay: expense.dueDay,
@@ -269,9 +356,9 @@ export async function POST(request: NextRequest) {
         for (const asset of data.assets) {
           await tx.asset.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               name: asset.name,
-              value: asset.value,
+              value: normalizeMoney(asset.value),
               type: asset.type,
               category: asset.category,
               description: asset.description,
@@ -287,11 +374,11 @@ export async function POST(request: NextRequest) {
         for (const debt of data.debts) {
           await tx.debt.create({
             data: {
-              userId: payload.userId,
+              userId: userId,
               creditor: debt.creditor,
-              totalAmount: debt.totalAmount,
-              remainingAmount: debt.remainingAmount,
-              monthlyPayment: debt.monthlyPayment,
+              totalAmount: normalizeMoney(debt.totalAmount),
+              remainingAmount: normalizeMoney(debt.remainingAmount),
+              monthlyPayment: normalizeMoney(debt.monthlyPayment),
               annualRate: debt.annualRate,
               type: debt.type,
               description: debt.description,
@@ -305,12 +392,20 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({
+    return NextResponse.json<ApiResponse>({
       success: true,
       message: 'Datos importados exitosamente',
     });
   } catch (error) {
-    console.error('Error importing data:', error);
-    return NextResponse.json({ error: 'Error al importar datos' }, { status: 500 });
+    logError('Unhandled error in import route', {
+      error,
+      route,
+      method,
+    });
+
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: 'Error al importar datos' },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,15 @@
 import { z } from 'zod';
 
+const monetaryAmountSchema = z
+  .number()
+  .finite('El monto debe ser un número válido')
+  .positive('El monto debe ser mayor a 0')
+  .refine((value) => Number.isInteger(value * 100), {
+    message: 'El monto solo puede tener hasta 2 decimales',
+  });
+
 export const transactionSchema = z.object({
-  amount: z.number().positive('El monto debe ser mayor a 0'),
+  amount: monetaryAmountSchema,
   type: z.enum(['income', 'expense']),
   categoryId: z.string().uuid('ID de categoría inválido'),
   description: z.string().min(1, 'La descripción es requerida').max(200),

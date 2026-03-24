@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/jwt';
 import { UserService } from '@/services/user.service';
 import { excludePassword } from '@/lib/utils';
 import type { ApiResponse } from '@/types/api.types';
 import type { UserWithoutPassword } from '@/types/auth.types';
+import { getRequestAuth } from '@/lib/api-auth';
+import { logError } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Obtener token de la cookie
-    const token = request.cookies.get('auth-token')?.value;
+  const route = '/api/auth/me';
+  const method = 'GET';
 
-    if (!token) {
+  try {
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
@@ -20,21 +22,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verificar token
-    const payload = await verifyToken(token);
-
-    if (!payload) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Token inválido',
-        },
-        { status: 401 }
-      );
-    }
-
     // Obtener usuario
-    const user = await UserService.findById(payload.userId);
+    const user = await UserService.findById(auth.payload.userId);
 
     if (!user) {
       return NextResponse.json<ApiResponse>(
@@ -54,7 +43,12 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error al obtener usuario:', error);
+    logError('Unhandled error in auth/me route', {
+      error,
+      route,
+      method,
+    });
+
     return NextResponse.json<ApiResponse>(
       {
         success: false,

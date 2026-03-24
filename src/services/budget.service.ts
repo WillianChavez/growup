@@ -7,6 +7,7 @@ import type {
   BudgetSummary,
 } from '@/types/budget.types';
 import type { TransactionCategory } from '@/types/finance.types';
+import { normalizeMoney, sumAsMoney, toCents, fromCents } from '@/lib/money';
 
 // Tipo que representa lo que Prisma devuelve con include: { category: true }
 type TransactionWithCategory = {
@@ -20,7 +21,6 @@ type TransactionWithCategory = {
   date: Date;
   isRecurring: boolean;
   recurringFrequency: string | null;
-  tags: string | null;
   createdAt: Date;
   updatedAt: Date;
   category: TransactionCategory | null;
@@ -45,6 +45,7 @@ export class BudgetService {
       data: {
         userId,
         ...data,
+        amount: normalizeMoney(data.amount),
       },
     });
     return source as IncomeSource;
@@ -57,7 +58,10 @@ export class BudgetService {
   ): Promise<IncomeSource> {
     const source = await prisma.incomeSource.update({
       where: { id, userId },
-      data,
+      data: {
+        ...data,
+        ...(data.amount !== undefined && { amount: normalizeMoney(data.amount) }),
+      },
     });
     return source as IncomeSource;
   }
@@ -86,6 +90,7 @@ export class BudgetService {
       data: {
         userId,
         ...data,
+        amount: normalizeMoney(data.amount),
       },
     });
     return expense as RecurringExpense;
@@ -98,7 +103,10 @@ export class BudgetService {
   ): Promise<RecurringExpense> {
     const expense = await prisma.recurringExpense.update({
       where: { id, userId },
-      data,
+      data: {
+        ...data,
+        ...(data.amount !== undefined && { amount: normalizeMoney(data.amount) }),
+      },
     });
     return expense as RecurringExpense;
   }
@@ -134,33 +142,32 @@ export class BudgetService {
     ]);
 
     // Tipar las transacciones correctamente
-    // Prisma devuelve tags como string | null, pero en runtime es string[] | null
     const transactions: TransactionWithCategory[] = transactionsRaw as TransactionWithCategory[];
 
     // Calcular ingresos mensuales planeados
-    const totalMonthlyIncome = incomeSources
-      .filter((source: IncomeSource) => source.isActive)
-      .reduce(
-        (sum: number, source: IncomeSource) =>
-          sum + this.convertToMonthly(source.amount, source.frequency),
-        0
-      );
+    const totalMonthlyIncome = sumAsMoney(
+      incomeSources
+        .filter((source: IncomeSource) => source.isActive)
+        .map((source: IncomeSource) => this.convertToMonthly(source.amount, source.frequency))
+    );
 
     // Calcular gastos mensuales planeados
-    const totalMonthlyExpenses = recurringExpenses
-      .filter((expense: RecurringExpense) => expense.isActive)
-      .reduce(
-        (sum: number, expense: RecurringExpense) =>
-          sum + this.convertToMonthly(expense.amount, expense.frequency),
-        0
-      );
+    const totalMonthlyExpenses = sumAsMoney(
+      recurringExpenses
+        .filter((expense: RecurringExpense) => expense.isActive)
+        .map((expense: RecurringExpense) =>
+          this.convertToMonthly(expense.amount, expense.frequency)
+        )
+    );
 
     // Calcular gastos reales del mes
-    const actualMonthlyExpenses = transactions
-      .filter((t: TransactionWithCategory) => t.type === 'expense')
-      .reduce((sum: number, t: TransactionWithCategory) => sum + t.amount, 0);
+    const actualMonthlyExpenses = sumAsMoney(
+      transactions
+        .filter((t: TransactionWithCategory) => t.type === 'expense')
+        .map((t: TransactionWithCategory) => t.amount)
+    );
 
-    const availableBalance = totalMonthlyIncome - totalMonthlyExpenses;
+    const availableBalance = normalizeMoney(totalMonthlyIncome - totalMonthlyExpenses);
     const savingsRate = totalMonthlyIncome > 0 ? (availableBalance / totalMonthlyIncome) * 100 : 0;
 
     // Agrupar gastos planeados por categoría y asignar gastos reales
@@ -175,7 +182,7 @@ export class BudgetService {
           );
 
           if (existing) {
-            existing.amount += monthlyAmount;
+            existing.amount = fromCents(toCents(existing.amount) + toCents(monthlyAmount));
           } else {
             acc.push({
               category: expense.category,
@@ -207,14 +214,14 @@ export class BudgetService {
         );
 
         if (existing) {
-          existing.actualAmount += t.amount;
+          existing.actualAmount = fromCents(toCents(existing.actualAmount) + toCents(t.amount));
         } else {
           // Si no existe, usamos el nombre de la categoría directamente
           expensesByCategory.push({
             category: catName,
             categoryName: catName,
             amount: 0,
-            actualAmount: t.amount,
+            actualAmount: normalizeMoney(t.amount),
             percentage: 0,
             isEssential: false,
           });
@@ -238,11 +245,11 @@ export class BudgetService {
           );
 
           if (existing) {
-            existing.amount += monthlyAmount;
+            existing.amount = fromCents(toCents(existing.amount) + toCents(monthlyAmount));
           } else {
             acc.push({
               category: source.category,
-              amount: monthlyAmount,
+              amount: normalizeMoney(monthlyAmount),
               actualAmount: 0,
               percentage: 0,
             });
@@ -265,12 +272,12 @@ export class BudgetService {
         );
 
         if (existing) {
-          existing.actualAmount += t.amount;
+          existing.actualAmount = fromCents(toCents(existing.actualAmount) + toCents(t.amount));
         } else {
           incomeByCategory.push({
             category: catName,
             amount: 0,
-            actualAmount: t.amount,
+            actualAmount: normalizeMoney(t.amount),
             percentage: 0,
           });
         }
@@ -340,17 +347,19 @@ export class BudgetService {
   };
 
   private static convertToMonthly(amount: number, frequency: string): number {
+    const normalizedAmount = normalizeMoney(amount);
+
     switch (frequency) {
       case 'weekly':
-        return amount * 4.33; // Promedio de semanas por mes
+        return normalizeMoney(normalizedAmount * 4.33); // Promedio de semanas por mes
       case 'biweekly':
-        return amount * 2.17; // Promedio de quincenas por mes
+        return normalizeMoney(normalizedAmount * 2.17); // Promedio de quincenas por mes
       case 'monthly':
-        return amount;
+        return normalizedAmount;
       case 'annual':
-        return amount / 12;
+        return normalizeMoney(normalizedAmount / 12);
       default:
-        return amount;
+        return normalizedAmount;
     }
   }
 

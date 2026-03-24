@@ -11,8 +11,8 @@ export const bookSchema = z.object({
   rating: z.number().min(1).max(5).optional(),
   review: z.string().max(2000).optional(),
   notes: z.string().max(1000).optional(),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
+  startDate: z.coerce.date().nullable().optional(),
+  endDate: z.coerce.date().nullable().optional(),
   genre: z.string().max(50).optional(),
   tags: z.array(z.string()).optional(),
 });

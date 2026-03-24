@@ -42,8 +42,8 @@ export interface BookFormData {
   rating?: number;
   review?: string;
   notes?: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: Date | null;
+  endDate?: Date | null;
   genre?: string;
   tags?: string[];
 }

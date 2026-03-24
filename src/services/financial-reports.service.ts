@@ -12,6 +12,7 @@ import type {
   FinancialSnapshot,
 } from '@/types/financial-reports.types';
 import type { Transaction, TransactionCategory } from '@/types/finance.types';
+import { normalizeMoney, sumAsMoney, toCents, fromCents } from '@/lib/money';
 
 // Tipo auxiliar para transacciones con categoría
 type TransactionWithCategory = Omit<
@@ -21,7 +22,6 @@ type TransactionWithCategory = Omit<
   type: string;
   category: TransactionCategory | null;
   recurringFrequency: string | null;
-  tags: string | null;
 };
 
 export class FinancialReportsService {
@@ -75,19 +75,17 @@ export class FinancialReportsService {
       }
 
       const breakdown = map.get(categoryId)!;
-      breakdown.amount += transaction.amount;
+      breakdown.amount = fromCents(toCents(breakdown.amount) + toCents(transaction.amount));
       breakdown.transactionCount += 1;
       breakdown.transactions?.push(transaction as unknown as Transaction);
     });
 
     // Calcular totales
-    const totalRevenue = Array.from(revenueByCategory.values()).reduce(
-      (sum, cat) => sum + cat.amount,
-      0
+    const totalRevenue = sumAsMoney(
+      Array.from(revenueByCategory.values()).map((cat) => cat.amount)
     );
-    const totalExpenses = Array.from(expensesByCategory.values()).reduce(
-      (sum, cat) => sum + cat.amount,
-      0
+    const totalExpenses = sumAsMoney(
+      Array.from(expensesByCategory.values()).map((cat) => cat.amount)
     );
 
     // Calcular porcentajes
@@ -98,7 +96,7 @@ export class FinancialReportsService {
       cat.percentage = totalExpenses > 0 ? (cat.amount / totalExpenses) * 100 : 0;
     });
 
-    const netIncome = totalRevenue - totalExpenses;
+    const netIncome = normalizeMoney(totalRevenue - totalExpenses);
     const netIncomeMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
 
     return {
@@ -171,20 +169,20 @@ export class FinancialReportsService {
         id: asset.id,
         name: asset.name,
         category: asset.category,
-        amount: asset.value,
+        amount: normalizeMoney(asset.value),
         percentage: 0,
       };
 
       if (asset.type === 'liquid') {
         liquidAssets.push(breakdown);
-        totalLiquidAssets += asset.value;
+        totalLiquidAssets = fromCents(toCents(totalLiquidAssets) + toCents(asset.value));
       } else {
         illiquidAssets.push(breakdown);
-        totalIlliquidAssets += asset.value;
+        totalIlliquidAssets = fromCents(toCents(totalIlliquidAssets) + toCents(asset.value));
       }
     });
 
-    const totalAssets = totalLiquidAssets + totalIlliquidAssets;
+    const totalAssets = normalizeMoney(totalLiquidAssets + totalIlliquidAssets);
 
     // Calcular porcentajes de activos
     liquidAssets.forEach((asset) => {
@@ -208,8 +206,8 @@ export class FinancialReportsService {
         id: debt.id,
         creditor: debt.creditor,
         type: debt.type,
-        amount: debt.remainingAmount,
-        monthlyPayment: debt.monthlyPayment,
+        amount: normalizeMoney(debt.remainingAmount),
+        monthlyPayment: normalizeMoney(debt.monthlyPayment),
         percentage: 0,
       };
 
@@ -217,14 +215,18 @@ export class FinancialReportsService {
 
       if (isShortTerm) {
         currentLiabilities.push(breakdown);
-        totalCurrentLiabilities += debt.remainingAmount;
+        totalCurrentLiabilities = fromCents(
+          toCents(totalCurrentLiabilities) + toCents(debt.remainingAmount)
+        );
       } else {
         longTermLiabilities.push(breakdown);
-        totalLongTermLiabilities += debt.remainingAmount;
+        totalLongTermLiabilities = fromCents(
+          toCents(totalLongTermLiabilities) + toCents(debt.remainingAmount)
+        );
       }
     });
 
-    const totalLiabilities = totalCurrentLiabilities + totalLongTermLiabilities;
+    const totalLiabilities = normalizeMoney(totalCurrentLiabilities + totalLongTermLiabilities);
 
     // Calcular porcentajes de pasivos
     currentLiabilities.forEach((debt) => {
@@ -234,7 +236,7 @@ export class FinancialReportsService {
       debt.percentage = totalLiabilities > 0 ? (debt.amount / totalLiabilities) * 100 : 0;
     });
 
-    const equity = totalAssets - totalLiabilities;
+    const equity = normalizeMoney(totalAssets - totalLiabilities);
 
     // Calcular ratios financieros
     const debtToAssets = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
@@ -317,8 +319,8 @@ export class FinancialReportsService {
 
     // 4. Calcular efectivo inicial y final
     const startingCash = await this.getCashBalance(userId, startDate);
-    const netCashFlow = operations.net + investing.net + financing.net;
-    const endingCash = startingCash + netCashFlow;
+    const netCashFlow = normalizeMoney(operations.net + investing.net + financing.net);
+    const endingCash = normalizeMoney(startingCash + netCashFlow);
 
     return {
       period: { startDate, endDate },
@@ -378,11 +380,11 @@ export class FinancialReportsService {
       const breakdown = categoryMap.get(categoryId)!;
 
       if (isIncome) {
-        totalInflows += transaction.amount;
-        breakdown.amount += transaction.amount;
+        totalInflows = fromCents(toCents(totalInflows) + toCents(transaction.amount));
+        breakdown.amount = fromCents(toCents(breakdown.amount) + toCents(transaction.amount));
       } else {
-        totalOutflows += transaction.amount;
-        breakdown.amount += transaction.amount;
+        totalOutflows = fromCents(toCents(totalOutflows) + toCents(transaction.amount));
+        breakdown.amount = fromCents(toCents(breakdown.amount) + toCents(transaction.amount));
       }
 
       breakdown.transactionCount += 1;
@@ -390,7 +392,7 @@ export class FinancialReportsService {
     });
 
     // Calcular porcentajes
-    const total = totalInflows + totalOutflows;
+    const total = normalizeMoney(totalInflows + totalOutflows);
     categoryMap.forEach((cat) => {
       cat.percentage = total > 0 ? (cat.amount / total) * 100 : 0;
     });
@@ -398,7 +400,7 @@ export class FinancialReportsService {
     return {
       inflows: totalInflows,
       outflows: totalOutflows,
-      net: totalInflows - totalOutflows,
+      net: normalizeMoney(totalInflows - totalOutflows),
       details: Array.from(categoryMap.values()).sort((a, b) => b.amount - a.amount),
     };
   }
@@ -431,8 +433,8 @@ export class FinancialReportsService {
       },
     });
 
-    const purchases = purchasedAssets.reduce((sum, asset) => sum + asset.value, 0);
-    const sales = soldAssets.reduce((sum, asset) => sum + asset.value, 0);
+    const purchases = sumAsMoney(purchasedAssets.map((asset) => asset.value));
+    const sales = sumAsMoney(soldAssets.map((asset) => asset.value));
 
     const details: CashFlowItem[] = [
       ...purchasedAssets.map((asset) => ({
@@ -450,7 +452,7 @@ export class FinancialReportsService {
     return {
       purchases,
       sales,
-      net: sales - purchases,
+      net: normalizeMoney(sales - purchases),
       details,
     };
   }
@@ -483,8 +485,8 @@ export class FinancialReportsService {
       },
     });
 
-    const borrowing = newDebts.reduce((sum, debt) => sum + debt.totalAmount, 0);
-    const repayment = paidDebts.reduce((sum, debt) => sum + debt.totalAmount, 0);
+    const borrowing = sumAsMoney(newDebts.map((debt) => debt.totalAmount));
+    const repayment = sumAsMoney(paidDebts.map((debt) => debt.totalAmount));
 
     const details: CashFlowItem[] = [
       ...newDebts.map((debt) => ({
@@ -500,7 +502,7 @@ export class FinancialReportsService {
     return {
       borrowing,
       repayment,
-      net: borrowing - repayment,
+      net: normalizeMoney(borrowing - repayment),
       details,
     };
   }
@@ -519,7 +521,7 @@ export class FinancialReportsService {
       },
     });
 
-    return accounts.reduce((sum, account) => sum + account.currentBalance, 0);
+    return sumAsMoney(accounts.map((account) => account.currentBalance));
   }
 
   private static async getAverageMonthlyExpenses(userId: string): Promise<number> {
@@ -536,8 +538,8 @@ export class FinancialReportsService {
       },
     });
 
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    return totalExpenses / 3;
+    const totalExpenses = sumAsMoney(expenses.map((expense) => expense.amount));
+    return normalizeMoney(totalExpenses / 3);
   }
 
   // ==================== COMPARISONS ====================
@@ -556,7 +558,7 @@ export class FinancialReportsService {
       netIncome: {
         current: current.netIncome,
         previous: previous.netIncome,
-        change: current.netIncome - previous.netIncome,
+        change: normalizeMoney(current.netIncome - previous.netIncome),
         changePercent:
           previous.netIncome !== 0
             ? ((current.netIncome - previous.netIncome) / Math.abs(previous.netIncome)) * 100
@@ -580,17 +582,11 @@ export class FinancialReportsService {
         userId,
         date,
         totalAssets: balanceSheet.assets.total,
-        liquidAssets: balanceSheet.assets.liquid.reduce((sum, a) => sum + a.amount, 0),
-        illiquidAssets: balanceSheet.assets.illiquid.reduce((sum, a) => sum + a.amount, 0),
+        liquidAssets: sumAsMoney(balanceSheet.assets.liquid.map((a) => a.amount)),
+        illiquidAssets: sumAsMoney(balanceSheet.assets.illiquid.map((a) => a.amount)),
         totalLiabilities: balanceSheet.liabilities.total,
-        shortTermLiabilities: balanceSheet.liabilities.current.reduce(
-          (sum, d) => sum + d.amount,
-          0
-        ),
-        longTermLiabilities: balanceSheet.liabilities.longTerm.reduce(
-          (sum, d) => sum + d.amount,
-          0
-        ),
+        shortTermLiabilities: sumAsMoney(balanceSheet.liabilities.current.map((d) => d.amount)),
+        longTermLiabilities: sumAsMoney(balanceSheet.liabilities.longTerm.map((d) => d.amount)),
         equity: balanceSheet.equity,
         cashBalance,
         netWorth: balanceSheet.netWorth,

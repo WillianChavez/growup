@@ -9,6 +9,7 @@ import {
   Minus,
   ArrowUpRight,
   ArrowDownRight,
+  ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   History,
@@ -32,15 +33,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   format,
-  isToday,
-  isYesterday,
-  differenceInDays,
+  isSameDay,
+  subDays,
+  addDays,
+  subWeeks,
+  addWeeks,
+  subMonths,
+  addMonths,
+  differenceInCalendarDays,
   startOfDay,
   endOfDay,
   startOfWeek,
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  isSameMonth,
+  isSameWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Transaction, TransactionFormData } from '@/types/finance.types';
@@ -57,6 +65,7 @@ export default function FinancePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('Semana');
+  const [referenceDate, setReferenceDate] = useState(new Date());
   const isMobile = useIsMobile();
 
   const { fetchTransactions, createTransaction, updateTransaction, deleteTransaction, isLoading } =
@@ -97,21 +106,20 @@ export default function FinancePage() {
 
   // Calcular estadísticas por período
   const getStatsByTimeRange = useMemo(() => {
-    const now = new Date();
     let startDate: Date;
-    let endDate: Date = endOfDay(now);
+    let endDate: Date = endOfDay(referenceDate);
 
     switch (timeRange) {
       case 'Día':
-        startDate = startOfDay(now);
+        startDate = startOfDay(referenceDate);
         break;
       case 'Semana':
-        startDate = startOfWeek(now, { locale: es });
-        endDate = endOfWeek(now, { locale: es });
+        startDate = startOfWeek(referenceDate, { locale: es });
+        endDate = endOfWeek(referenceDate, { locale: es });
         break;
       case 'Mes':
-        startDate = startOfMonth(now);
-        endDate = endOfMonth(now);
+        startDate = startOfMonth(referenceDate);
+        endDate = endOfMonth(referenceDate);
         break;
     }
 
@@ -161,6 +169,8 @@ export default function FinancePage() {
       .slice(0, 5);
 
     return {
+      startDate,
+      endDate,
       balance: ingresos - egresos,
       ingresos,
       egresos,
@@ -171,13 +181,67 @@ export default function FinancePage() {
         return dateB.getTime() - dateA.getTime();
       }),
     };
-  }, [transactions, timeRange]);
+  }, [referenceDate, transactions, timeRange]);
+
+  const goToPreviousPeriod = () => {
+    setReferenceDate((current) => {
+      switch (timeRange) {
+        case 'Día':
+          return subDays(current, 1);
+        case 'Semana':
+          return subWeeks(current, 1);
+        case 'Mes':
+          return subMonths(current, 1);
+      }
+    });
+  };
+
+  const goToNextPeriod = () => {
+    setReferenceDate((current) => {
+      switch (timeRange) {
+        case 'Día':
+          return addDays(current, 1);
+        case 'Semana':
+          return addWeeks(current, 1);
+        case 'Mes':
+          return addMonths(current, 1);
+      }
+    });
+  };
+
+  const isCurrentPeriod = useMemo(() => {
+    const now = new Date();
+
+    switch (timeRange) {
+      case 'Día':
+        return isSameDay(referenceDate, now);
+      case 'Semana':
+        return isSameWeek(referenceDate, now, { locale: es });
+      case 'Mes':
+        return isSameMonth(referenceDate, now);
+    }
+  }, [referenceDate, timeRange]);
+
+  const periodLabel = useMemo(() => {
+    const { startDate, endDate } = getStatsByTimeRange;
+
+    switch (timeRange) {
+      case 'Día':
+        return format(startDate, "EEEE, d 'de' MMMM", { locale: es });
+      case 'Semana':
+        return `${format(startDate, 'd MMM', { locale: es })} - ${format(endDate, 'd MMM yyyy', {
+          locale: es,
+        })}`;
+      case 'Mes':
+        return format(startDate, "MMMM 'de' yyyy", { locale: es });
+    }
+  }, [getStatsByTimeRange, timeRange]);
 
   // Formatear fecha relativa
   const formatRelativeDate = (date: Date): string => {
-    if (isToday(date)) return 'Hoy';
-    if (isYesterday(date)) return 'Ayer';
-    const daysDiff = differenceInDays(new Date(), date);
+    if (isSameDay(date, referenceDate)) return 'Hoy';
+    if (isSameDay(date, subDays(referenceDate, 1))) return 'Ayer';
+    const daysDiff = differenceInCalendarDays(referenceDate, date);
     if (daysDiff <= 7) {
       return format(date, 'EEEE', { locale: es });
     }
@@ -297,21 +361,53 @@ export default function FinancePage() {
 
         {/* Selector de Tiempo y Botones de Acción - Desktop */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 lg:mt-6">
-          <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800 rounded-2xl w-full md:w-80">
-            {(['Día', 'Semana', 'Mes'] as TimeRange[]).map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={cn(
-                  'flex-1 py-2.5 text-xs font-black rounded-xl transition-all',
-                  timeRange === range
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-                )}
+          <div className="flex flex-col gap-3 w-full md:w-auto">
+            <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800 rounded-2xl w-full md:w-80">
+              {(['Día', 'Semana', 'Mes'] as TimeRange[]).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={cn(
+                    'flex-1 py-2.5 text-xs font-black rounded-xl transition-all',
+                    timeRange === range
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                  )}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToPreviousPeriod}
+                className="h-9 w-9 rounded-xl shrink-0"
+                aria-label={`Ir al ${timeRange.toLowerCase()} anterior`}
               >
-                {range}
-              </button>
-            ))}
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-0 flex-1 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                  Período seleccionado
+                </p>
+                <p className="truncate text-sm font-bold text-slate-700 dark:text-slate-200 capitalize">
+                  {periodLabel}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToNextPeriod}
+                disabled={isCurrentPeriod}
+                className="h-9 w-9 rounded-xl shrink-0"
+                aria-label={`Ir al siguiente ${timeRange.toLowerCase()}`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Botones de acción - Solo Desktop */}

@@ -1,21 +1,23 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/jwt';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import type { ApiResponse } from '@/types/api.types';
+import { getRequestAuth } from '@/lib/api-auth';
+import { logError } from '@/lib/logger';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const route = '/api/data/export';
+  const method = 'GET';
+
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
     }
 
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
-    }
+    const userId = auth.payload.userId;
 
     // Exportar todos los datos del usuario
     const [
@@ -32,31 +34,58 @@ export async function GET() {
       assets,
       debts,
     ] = await Promise.all([
-      prisma.habit.findMany({ where: { userId: payload.userId } }),
-      prisma.habitCategory.findMany({ where: { userId: payload.userId } }),
-      prisma.habitEntry.findMany({ where: { userId: payload.userId } }),
-      prisma.book.findMany({ where: { userId: payload.userId } }),
-      prisma.bookQuote.findMany({ where: { userId: payload.userId } }),
-      prisma.transaction.findMany({ where: { userId: payload.userId } }),
-      prisma.transactionCategory.findMany({ where: { userId: payload.userId } }),
-      prisma.goal.findMany({ where: { userId: payload.userId } }),
-      prisma.incomeSource.findMany({ where: { userId: payload.userId } }),
-      prisma.recurringExpense.findMany({ where: { userId: payload.userId } }),
-      prisma.asset.findMany({ where: { userId: payload.userId } }),
-      prisma.debt.findMany({ where: { userId: payload.userId } }),
+      prisma.habit.findMany({ where: { userId } }),
+      prisma.habitCategory.findMany({ where: { userId } }),
+      prisma.habitEntry.findMany({ where: { userId } }),
+      prisma.book.findMany({
+        where: { userId },
+        include: {
+          tags: {
+            orderBy: { order: 'asc' },
+          },
+        },
+      }),
+      prisma.bookQuote.findMany({ where: { userId } }),
+      prisma.transaction.findMany({
+        where: { userId },
+        include: {
+          tags: {
+            orderBy: { order: 'asc' },
+          },
+        },
+      }),
+      prisma.transactionCategory.findMany({ where: { userId } }),
+      prisma.goal.findMany({
+        where: { userId },
+        include: {
+          milestones: {
+            orderBy: { order: 'asc' },
+          },
+        },
+      }),
+      prisma.incomeSource.findMany({ where: { userId } }),
+      prisma.recurringExpense.findMany({ where: { userId } }),
+      prisma.asset.findMany({ where: { userId } }),
+      prisma.debt.findMany({ where: { userId } }),
     ]);
 
     const exportData = {
       version: '1.0.0',
       exportDate: new Date().toISOString(),
-      userId: payload.userId,
+      userId,
       data: {
         habits,
         habitCategories,
         habitEntries,
-        books,
+        books: books.map(({ tags, ...book }) => ({
+          ...book,
+          tags: tags.map((tag) => tag.name),
+        })),
         bookQuotes,
-        transactions,
+        transactions: transactions.map(({ tags, ...transaction }) => ({
+          ...transaction,
+          tags: tags.map((tag) => tag.name),
+        })),
         transactionCategories,
         goals,
         incomeSources,
@@ -66,12 +95,20 @@ export async function GET() {
       },
     };
 
-    return NextResponse.json({
+    return NextResponse.json<ApiResponse>({
       success: true,
       data: exportData,
     });
   } catch (error) {
-    console.error('Error exporting data:', error);
-    return NextResponse.json({ error: 'Error al exportar datos' }, { status: 500 });
+    logError('Unhandled error in export route', {
+      error,
+      route,
+      method,
+    });
+
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: 'Error al exportar datos' },
+      { status: 500 }
+    );
   }
 }

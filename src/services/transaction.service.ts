@@ -6,15 +6,43 @@ import type {
   MonthlyTransactionGroup,
 } from '@/types/finance.types';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
+import { normalizeMoney, sumAsMoney, toCents, fromCents } from '@/lib/money';
+import { normalizeTagNames } from '@/lib/entity-tags';
+
+type TransactionRecord = {
+  id: string;
+  userId: string;
+  amount: number;
+  type: string;
+  categoryId: string;
+  description: string;
+  notes: string | null;
+  date: Date;
+  isRecurring: boolean;
+  recurringFrequency: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  category: Transaction['category'];
+  tags: { name: string; order: number }[];
+};
+
+function mapTransactionRecord(transaction: TransactionRecord): Transaction {
+  return {
+    ...transaction,
+    tags: transaction.tags.map((tag) => tag.name),
+  } as Transaction;
+}
 
 export class TransactionService {
   static async create(
     userId: string,
     data: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'category'>
   ): Promise<Transaction> {
-    return prisma.transaction.create({
+    const tags = normalizeTagNames(data.tags);
+
+    const transaction = await prisma.transaction.create({
       data: {
-        amount: data.amount,
+        amount: normalizeMoney(data.amount),
         type: data.type,
         categoryId: data.categoryId,
         description: data.description,
@@ -22,13 +50,25 @@ export class TransactionService {
         date: data.date,
         isRecurring: data.isRecurring,
         recurringFrequency: data.recurringFrequency,
-        tags: data.tags ? JSON.stringify(data.tags) : null,
         userId,
+        tags: tags.length
+          ? {
+              create: tags.map((name, index) => ({
+                name,
+                order: index,
+              })),
+            }
+          : undefined,
       },
       include: {
         category: true,
+        tags: {
+          orderBy: { order: 'asc' },
+        },
       },
-    }) as Promise<Transaction>;
+    });
+
+    return mapTransactionRecord(transaction);
   }
 
   static async findById(id: string, userId: string): Promise<Transaction | null> {
@@ -36,15 +76,15 @@ export class TransactionService {
       where: { id, userId },
       include: {
         category: true,
+        tags: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
     if (!transaction) return null;
 
-    return {
-      ...transaction,
-      tags: transaction.tags ? JSON.parse(transaction.tags) : null,
-    } as Transaction;
+    return mapTransactionRecord(transaction as TransactionRecord);
   }
 
   static async findAllByUser(
@@ -86,14 +126,16 @@ export class TransactionService {
       where,
       include: {
         category: true,
+        tags: {
+          orderBy: { order: 'asc' },
+        },
       },
       orderBy: { date: 'desc' },
     });
 
-    return transactions.map((t) => ({
-      ...t,
-      tags: t.tags ? JSON.parse(t.tags) : null,
-    })) as Transaction[];
+    return transactions.map((transaction) =>
+      mapTransactionRecord(transaction as TransactionRecord)
+    );
   }
 
   // Agrupar transacciones por mes - incluyendo las transacciones completas
@@ -117,6 +159,9 @@ export class TransactionService {
       },
       include: {
         category: true,
+        tags: {
+          orderBy: { order: 'asc' },
+        },
       },
       orderBy: { date: 'desc' },
     });
@@ -141,23 +186,24 @@ export class TransactionService {
       }
 
       // Agregar la transacción completa al grupo
-      const transaction: Transaction = {
-        ...t,
-        tags: t.tags ? JSON.parse(t.tags) : null,
-      } as Transaction;
+      const transaction = mapTransactionRecord(t as TransactionRecord);
       monthlyGroups[monthKey].transactions.push(transaction);
 
       // Calcular totales
       if (t.type === 'income') {
-        monthlyGroups[monthKey].totalIncome += t.amount;
+        monthlyGroups[monthKey].totalIncome = normalizeMoney(
+          monthlyGroups[monthKey].totalIncome + t.amount
+        );
       } else {
-        monthlyGroups[monthKey].totalExpenses += t.amount;
+        monthlyGroups[monthKey].totalExpenses = normalizeMoney(
+          monthlyGroups[monthKey].totalExpenses + t.amount
+        );
       }
     });
 
     // Calcular balances
     Object.values(monthlyGroups).forEach((group) => {
-      group.balance = group.totalIncome - group.totalExpenses;
+      group.balance = normalizeMoney(group.totalIncome - group.totalExpenses);
     });
 
     return Object.values(monthlyGroups).sort((a, b) => {
@@ -186,11 +232,16 @@ export class TransactionService {
       date?: Date;
       isRecurring?: boolean;
       recurringFrequency?: string | null;
-      tags?: string | null;
+      tags?:
+        | {
+            deleteMany: Record<string, never>;
+            create?: { name: string; order: number }[];
+          }
+        | undefined;
     }
 
     const updateData: UpdateData = {};
-    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.amount !== undefined) updateData.amount = normalizeMoney(data.amount);
     if (data.type !== undefined) updateData.type = data.type;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
     if (data.description !== undefined) updateData.description = data.description;
@@ -199,20 +250,33 @@ export class TransactionService {
     if (data.isRecurring !== undefined) updateData.isRecurring = data.isRecurring;
     if (data.recurringFrequency !== undefined)
       updateData.recurringFrequency = data.recurringFrequency;
-    if (data.tags !== undefined) updateData.tags = data.tags ? JSON.stringify(data.tags) : null;
+    if (data.tags !== undefined) {
+      const tags = normalizeTagNames(data.tags);
+      updateData.tags = {
+        deleteMany: {},
+        ...(tags.length
+          ? {
+              create: tags.map((name, index) => ({
+                name,
+                order: index,
+              })),
+            }
+          : {}),
+      };
+    }
 
     const updated = await prisma.transaction.update({
       where: { id },
       data: updateData,
       include: {
         category: true,
+        tags: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
-    return {
-      ...updated,
-      tags: updated.tags ? JSON.parse(updated.tags) : null,
-    } as Transaction;
+    return mapTransactionRecord(updated as TransactionRecord);
   }
 
   static async delete(id: string, userId: string): Promise<boolean> {
@@ -237,21 +301,21 @@ export class TransactionService {
       (t) => t.date >= monthStart && t.date <= monthEnd
     );
 
-    const totalIncome = allTransactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = sumAsMoney(
+      allTransactions.filter((t) => t.type === 'income').map((t) => t.amount)
+    );
 
-    const totalExpenses = allTransactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = sumAsMoney(
+      allTransactions.filter((t) => t.type === 'expense').map((t) => t.amount)
+    );
 
-    const monthlyIncome = thisMonthTransactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const monthlyIncome = sumAsMoney(
+      thisMonthTransactions.filter((t) => t.type === 'income').map((t) => t.amount)
+    );
 
-    const monthlyExpenses = thisMonthTransactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const monthlyExpenses = sumAsMoney(
+      thisMonthTransactions.filter((t) => t.type === 'expense').map((t) => t.amount)
+    );
 
     // Category totals (este mes, solo gastos)
     const categoryMap: Record<
@@ -271,7 +335,9 @@ export class TransactionService {
             count: 0,
           };
         }
-        categoryMap[t.categoryId].total += t.amount;
+        categoryMap[t.categoryId].total = fromCents(
+          toCents(categoryMap[t.categoryId].total) + toCents(t.amount)
+        );
         categoryMap[t.categoryId].count += 1;
       });
 
@@ -290,11 +356,11 @@ export class TransactionService {
     return {
       totalIncome,
       totalExpenses,
-      balance: totalIncome - totalExpenses,
+      balance: normalizeMoney(totalIncome - totalExpenses),
       thisMonth: {
         income: monthlyIncome,
         expenses: monthlyExpenses,
-        balance: monthlyIncome - monthlyExpenses,
+        balance: normalizeMoney(monthlyIncome - monthlyExpenses),
       },
       topCategories,
       recentTransactions: allTransactions.slice(0, 10),
