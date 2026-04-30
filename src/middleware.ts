@@ -4,15 +4,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { logWarn } from '@/lib/logger';
 
 // Rutas que requieren autenticación
-const protectedRoutes = [
-  '/dashboard',
-  '/check-in',
-  '/habits',
-  '/reading',
-  '/finance',
-  '/goals',
-  '/settings',
-];
+const protectedRoutes = ['/dashboard', '/habits', '/reading', '/finance', '/goals', '/settings'];
 
 // Rutas de autenticación (redirigir si ya está autenticado)
 const authRoutes = ['/login', '/register'];

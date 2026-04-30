@@ -16,6 +16,7 @@ model User {
   email     String   @unique
   name      String
   password  String
+  apiKey    String?  @unique
   timezone  String   @default("America/New_York")
   currency  String   @default("USD")
   theme     String   @default("light")

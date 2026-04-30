@@ -20,8 +20,16 @@ import {
   GitBranch,
   ChevronLeft,
   ChevronRight,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useGoals } from '@/hooks/useGoals';
 import { GoalDialog } from '@/components/goals/goal-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -868,12 +876,29 @@ export default function GoalsPage() {
                       >
                         {config.label}
                       </span>
-                      <button
-                        onClick={() => handleOpenDialog(goal)}
-                        className="text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400"
-                      >
-                        <MoreHorizontal size={20} />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400">
+                            <MoreHorizontal size={20} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleOpenDialog(goal)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setGoalToDelete(goal.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
@@ -1086,12 +1111,29 @@ export default function GoalsPage() {
                                         </p>
                                       )}
                                     </div>
-                                    <button
-                                      onClick={() => handleOpenDialog(goal)}
-                                      className="shrink-0 text-slate-300 transition-colors hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400"
-                                    >
-                                      <MoreHorizontal size={18} />
-                                    </button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button className="shrink-0 text-slate-300 transition-colors hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400">
+                                          <MoreHorizontal size={18} />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleOpenDialog(goal)}>
+                                          <Pencil className="mr-2 h-4 w-4" />
+                                          Editar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setGoalToDelete(goal.id);
+                                            setDeleteDialogOpen(true);
+                                          }}
+                                          className="text-red-600 focus:text-red-600"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Eliminar
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </div>
 
                                   <div className="mb-3 flex flex-wrap items-center gap-2">

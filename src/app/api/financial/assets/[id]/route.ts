@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/jwt';
+import { getRequestAuth } from '@/lib/api-auth';
 import { FinancialService } from '@/services/financial.service';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-
-    if (!token) {
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
-    }
+    const payload = auth.payload;
 
     const data = await request.json();
     const { id } = await params;
@@ -33,17 +26,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-
-    if (!token) {
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
-    }
+    const payload = auth.payload;
 
     const { id } = await params;
     await FinancialService.deleteAsset(id, payload.userId);

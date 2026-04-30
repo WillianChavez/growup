@@ -268,7 +268,7 @@ export class FocusService {
         title: 'Hábitos pendientes hoy',
         description: `Tienes ${pendingHabits} hábito(s) por completar hoy.`,
         actionLabel: 'Completar ahora',
-        actionUrl: '/check-in',
+        actionUrl: '/habits',
       });
     }
 

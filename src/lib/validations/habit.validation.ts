@@ -5,6 +5,7 @@ export const habitSchema = z.object({
   description: z.string().optional(),
   emoji: z.string().default('🎯'),
   categoryId: z.string().uuid('ID de categoría inválido'),
+  isActive: z.boolean().optional(),
 });
 
 export const habitEntrySchema = z.object({

@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FinancialService } from '@/services/financial.service';
-import { verifyToken } from '@/lib/jwt';
+import { getRequestAuth } from '@/lib/api-auth';
 import type { ApiResponse } from '@/types/api.types';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token)
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload)
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'No autenticado' },
         { status: 401 }
       );
-
-    const payload = await verifyToken(token);
-    if (!payload)
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
+    const payload = auth.payload;
 
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('activeOnly') !== 'false';
@@ -35,19 +29,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token)
+    const auth = await getRequestAuth(request);
+    if (!auth.isAuthenticated || !auth.payload)
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'No autenticado' },
         { status: 401 }
       );
-
-    const payload = await verifyToken(token);
-    if (!payload)
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
+    const payload = auth.payload;
 
     const body = await request.json();
     const debt = await FinancialService.createDebt(payload.userId, body);

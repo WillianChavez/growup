@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Check,
   Star,
+  Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +31,12 @@ import {
   isToday,
   getDay,
   isSameDay,
+  isFuture,
+  isAfter,
+  startOfDay,
 } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Link from 'next/link';
 import type { Habit, HabitFormData, DailyHabitView, MonthlyHabitData } from '@/types/habit.types';
 import { cn } from '@/lib/utils';
 import { useUserStore } from '@/stores/user-store';
@@ -44,7 +50,7 @@ export default function HabitsPage() {
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [habitToDelete, setHabitToDelete] = useState<string | null>(null);
-  const [currentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dailyView, setDailyView] = useState<DailyHabitView | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlyHabitData[]>([]);
@@ -161,6 +167,11 @@ export default function HabitsPage() {
     }
   };
 
+  const handleSelectDay = (day: Date) => {
+    if (isAfter(startOfDay(day), startOfDay(new Date()))) return;
+    setCurrentDate(day);
+  };
+
   const goToPrevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
@@ -244,9 +255,11 @@ export default function HabitsPage() {
         date: day,
         level: getActivityLevel(day),
         isToday: isToday(day),
+        isSelected: isSameDay(day, currentDate),
+        isFutureDay: isFuture(day) && !isToday(day),
       })),
     };
-  }, [currentMonth, getActivityLevel]);
+  }, [currentMonth, getActivityLevel, currentDate]);
 
   // Obtener datos semanales para el gráfico
   const weeklyChartData = useMemo(() => {
@@ -287,9 +300,21 @@ export default function HabitsPage() {
           {/* Columna Izquierda: Hábitos del Día */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-slate-800 dark:text-white uppercase text-xs tracking-widest">
-                Tus hábitos de hoy
-              </h3>
+              <div>
+                <h3 className="font-black text-slate-800 dark:text-white uppercase text-xs tracking-widest">
+                  {isToday(currentDate)
+                    ? 'Tus hábitos de hoy'
+                    : `Hábitos del ${format(currentDate, "d 'de' MMMM", { locale: es })}`}
+                </h3>
+                {!isToday(currentDate) && (
+                  <button
+                    onClick={() => setCurrentDate(new Date())}
+                    className="text-[10px] text-indigo-500 font-bold mt-0.5 hover:underline"
+                  >
+                    Volver a hoy →
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2">
                 <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm">
                   <Flame size={14} className="text-orange-500" />
@@ -404,6 +429,13 @@ export default function HabitsPage() {
                 >
                   <Plus size={18} /> Personalizar mis hábitos
                 </button>
+
+                <Link
+                  href="/habits/manage"
+                  className="w-full py-3 rounded-4xl text-slate-400 dark:text-slate-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+                >
+                  <Settings2 size={16} /> Gestionar hábitos
+                </Link>
               </>
             )}
           </div>
@@ -440,23 +472,23 @@ export default function HabitsPage() {
                   {calendarDays.days.map((day, i) => (
                     <div key={`cal-tile-${i}`} className="relative group">
                       <div
+                        onClick={() => handleSelectDay(day.date)}
                         className={cn(
-                          'aspect-square rounded-lg border-2 transition-all cursor-help',
+                          'aspect-square rounded-lg border-2 transition-all',
+                          day.isFutureDay
+                            ? 'cursor-not-allowed opacity-40'
+                            : 'cursor-pointer hover:scale-110',
                           getLevelColor(day.level ?? 0),
                           day.isToday &&
-                            'ring-2 ring-rose-400 dark:ring-rose-500 ring-offset-2 dark:ring-offset-slate-900'
+                            'ring-2 ring-rose-400 dark:ring-rose-500 ring-offset-2 dark:ring-offset-slate-900',
+                          day.isSelected &&
+                            !day.isToday &&
+                            'ring-2 ring-indigo-500 dark:ring-indigo-400 ring-offset-2 dark:ring-offset-slate-900'
                         )}
                       />
                       {/* Tooltip */}
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 dark:bg-slate-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 font-bold uppercase tracking-tighter">
-                        Día {format(day.date, 'd')}:{' '}
-                        {day.level === 3
-                          ? 'Perfecto'
-                          : day.level === 2
-                            ? 'Bien'
-                            : day.level === 1
-                              ? 'Parcial'
-                              : 'Incompleto'}
+                        {format(day.date, 'd MMM', { locale: es })}
                       </div>
                     </div>
                   ))}

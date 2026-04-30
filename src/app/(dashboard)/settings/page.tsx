@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Download, Upload } from 'lucide-react';
+import {
+  Loader2,
+  Download,
+  Upload,
+  Key,
+  Copy,
+  RefreshCw,
+  Trash2,
+  Eye,
+  EyeOff,
+  ExternalLink,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -16,11 +27,55 @@ export default function SettingsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // API Key state
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyLoading, setApiKeyLoading] = useState(true);
+  const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [apiKeyGenerating, setApiKeyGenerating] = useState(false);
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
+
   useEffect(() => {
     if (user) {
       setName(user.name);
     }
   }, [user]);
+
+  useEffect(() => {
+    fetch('/api/user/api-key')
+      .then((r) => r.json())
+      .then((r) => {
+        if (r.success) setApiKey(r.data.apiKey);
+      })
+      .finally(() => setApiKeyLoading(false));
+  }, []);
+
+  const handleGenerateApiKey = async () => {
+    setApiKeyGenerating(true);
+    try {
+      const r = await fetch('/api/user/api-key', { method: 'POST' });
+      const data = await r.json();
+      if (data.success) {
+        setApiKey(data.data.apiKey);
+        setApiKeyVisible(true);
+      }
+    } finally {
+      setApiKeyGenerating(false);
+    }
+  };
+
+  const handleRevokeApiKey = async () => {
+    if (!confirm('¿Revocar la API key? Dejarás de poder usarla en herramientas externas.')) return;
+    await fetch('/api/user/api-key', { method: 'DELETE' });
+    setApiKey(null);
+    setApiKeyVisible(false);
+  };
+
+  const handleCopyApiKey = async () => {
+    if (!apiKey) return;
+    await navigator.clipboard.writeText(apiKey);
+    setApiKeyCopied(true);
+    setTimeout(() => setApiKeyCopied(false), 2000);
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -169,6 +224,97 @@ export default function SettingsPage() {
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar Cambios
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* API Key */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              API Key
+            </CardTitle>
+            <CardDescription>
+              Úsala para acceder a tu cuenta desde herramientas externas como AI assistants.{' '}
+              <a
+                href="/developers"
+                target="_blank"
+                className="text-indigo-600 hover:underline inline-flex items-center gap-1"
+              >
+                Ver documentación <ExternalLink className="h-3 w-3" />
+              </a>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {apiKeyLoading ? (
+              <div className="flex items-center gap-2 text-slate-400">
+                <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
+              </div>
+            ) : apiKey ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={apiKeyVisible ? apiKey : '•'.repeat(Math.min(apiKey.length, 40))}
+                    className="font-mono text-sm bg-slate-50 dark:bg-slate-900"
+                  />
+                  <Button variant="ghost" size="icon" onClick={() => setApiKeyVisible((v) => !v)}>
+                    {apiKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={handleCopyApiKey}>
+                    {apiKeyCopied ? (
+                      <span className="text-xs text-emerald-600">✓</span>
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateApiKey}
+                    disabled={apiKeyGenerating}
+                  >
+                    {apiKeyGenerating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Regenerar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={handleRevokeApiKey}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Revocar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No tienes una API key activa.
+                </p>
+                <Button onClick={handleGenerateApiKey} disabled={apiKeyGenerating}>
+                  {apiKeyGenerating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Key className="mr-2 h-4 w-4" />
+                  )}
+                  Generar API Key
+                </Button>
+              </div>
+            )}
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-3 border border-amber-200 dark:border-amber-800">
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                Trata tu API key como una contraseña. Quien la tenga tendrá acceso completo a tu
+                cuenta.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
