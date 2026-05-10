@@ -835,7 +835,7 @@ export default function GoalsPage() {
         ) : viewMode === 'list' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {filteredGoals.map((goal) => {
-              const config = categoryConfig[goal.category];
+              const config = categoryConfig[goal.category] ?? categoryConfig['other'];
               const IconComponent = config.icon;
               const deadline = formatDeadline(goal.targetDate);
               const milestones = goal.milestones || [];
@@ -1063,7 +1063,7 @@ export default function GoalsPage() {
                         </div>
                       ) : (
                         columnGoals.map((goal) => {
-                          const config = categoryConfig[goal.category];
+                          const config = categoryConfig[goal.category] ?? categoryConfig['other'];
                           const IconComponent = config.icon;
                           const deadline = formatDeadline(goal.targetDate);
                           const milestones = goal.milestones || [];
