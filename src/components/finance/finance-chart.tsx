@@ -43,7 +43,7 @@ export function FinanceChart({ data }: FinanceChartProps) {
   }, [data, monthsFilter]);
 
   const chartData = useMemo(() => {
-    const sortedData = [...filteredData].reverse();
+    const sortedData = [...filteredData];
 
     return {
       labels: sortedData.map((group) => {
