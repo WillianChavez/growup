@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,9 @@ import { Label } from '@/components/ui/label';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { DebtDialog } from '@/components/financial/debt-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import type { Debt, DebtFormData } from '@/types/financial.types';
+import type { Debt, DebtFormData, DebtPayment } from '@/types/financial.types';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function DebtsPage() {
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -21,6 +23,9 @@ export default function DebtsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [debtToDelete, setDebtToDelete] = useState<string | null>(null);
+  const [expandedDebtId, setExpandedDebtId] = useState<string | null>(null);
+  const [paymentsByDebt, setPaymentsByDebt] = useState<Record<string, DebtPayment[]>>({});
+  const [loadingPaymentsId, setLoadingPaymentsId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDebts();
@@ -84,6 +89,28 @@ export default function DebtsPage() {
 
     if (response.ok) {
       await loadDebts();
+    }
+  };
+
+  const togglePayments = async (debtId: string) => {
+    if (expandedDebtId === debtId) {
+      setExpandedDebtId(null);
+      return;
+    }
+    setExpandedDebtId(debtId);
+    if (!paymentsByDebt[debtId]) {
+      try {
+        setLoadingPaymentsId(debtId);
+        const response = await fetch(`/api/financial/debts/${debtId}/payments`);
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentsByDebt((prev) => ({ ...prev, [debtId]: data.data || [] }));
+        }
+      } catch (error) {
+        console.error('Error loading debt payments:', error);
+      } finally {
+        setLoadingPaymentsId(null);
+      }
     }
   };
 
@@ -268,71 +295,159 @@ export default function DebtsPage() {
               </p>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {filteredDebts.map((debt) => (
-                  <div
-                    key={debt.id}
-                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-2">
-                        <span className="text-xl">{getTypeIcon(debt.type)}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{debt.creditor}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge
-                              variant={debt.status === 'paid' ? 'default' : 'destructive'}
-                              className="text-xs"
-                            >
-                              {debt.status === 'paid' ? 'Pagada' : 'Activa'}
-                            </Badge>
-                            <span className="text-xs text-slate-500">{debt.annualRate}% anual</span>
+                {filteredDebts.map((debt) => {
+                  const paidAmount = Math.max(0, debt.totalAmount - debt.remainingAmount);
+                  const progress =
+                    debt.totalAmount > 0 ? Math.min(100, (paidAmount / debt.totalAmount) * 100) : 0;
+                  const isExpanded = expandedDebtId === debt.id;
+                  const payments = paymentsByDebt[debt.id] || [];
+
+                  return (
+                    <div key={debt.id} className="border rounded-lg overflow-hidden">
+                      <div className="flex items-start justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-900">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-2">
+                            <span className="text-xl">{getTypeIcon(debt.type)}</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">{debt.creditor}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Badge
+                                  variant={debt.status === 'paid' ? 'default' : 'destructive'}
+                                  className="text-xs"
+                                >
+                                  {debt.status === 'paid' ? 'Pagada' : 'Activa'}
+                                </Badge>
+                                <span className="text-xs text-slate-500">
+                                  {debt.annualRate}% anual
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">
+                                ${debt.remainingAmount.toFixed(2)} de ${debt.totalAmount.toFixed(2)}{' '}
+                                • ${debt.monthlyPayment.toFixed(2)}
+                                /mes
+                              </p>
+                              {debt.description && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                  {debt.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">
-                            ${debt.remainingAmount.toFixed(2)} de ${debt.totalAmount.toFixed(2)} • $
-                            {debt.monthlyPayment.toFixed(2)}/mes
-                          </p>
-                          {debt.description && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                              {debt.description}
-                            </p>
-                          )}
+                        </div>
+                        <div className="flex items-center gap-1 ml-2 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleMarkAsPaid(debt)}
+                            title={
+                              debt.status === 'paid' ? 'Marcar como activa' : 'Marcar como pagada'
+                            }
+                          >
+                            <CheckCircle2
+                              className={`h-4 w-4 ${debt.status === 'paid' ? 'text-green-600' : 'text-slate-400'}`}
+                            />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setEditingDebt(debt);
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-600"
+                            onClick={() => handleDelete(debt.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
+
+                      {/* Progreso de pago */}
+                      <div className="px-3 pb-2">
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[11px] text-slate-500">
+                            Abonado ${paidAmount.toFixed(2)} ({progress.toFixed(0)}%)
+                          </span>
+                          <button
+                            onClick={() => togglePayments(debt.id)}
+                            className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 hover:underline"
+                          >
+                            {isExpanded ? (
+                              <>
+                                Ocultar abonos <ChevronUp className="h-3 w-3" />
+                              </>
+                            ) : (
+                              <>
+                                Ver abonos <ChevronDown className="h-3 w-3" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Historial de abonos */}
+                      {isExpanded && (
+                        <div className="border-t bg-slate-50 dark:bg-slate-900/50 px-3 py-2">
+                          {loadingPaymentsId === debt.id ? (
+                            <div className="flex justify-center py-3 text-slate-400">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : payments.length === 0 ? (
+                            <p className="text-xs text-slate-500 py-2 text-center">
+                              Aún no hay abonos registrados. Regístralos creando un egreso y
+                              activando &quot;Abono a deuda&quot;.
+                            </p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {payments.map((payment) => (
+                                <li
+                                  key={payment.id}
+                                  className="flex items-center justify-between text-xs"
+                                >
+                                  <div className="min-w-0">
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">
+                                      {format(new Date(payment.date), 'd MMM yyyy', {
+                                        locale: es,
+                                      })}
+                                    </span>
+                                    {payment.interest > 0 && (
+                                      <span className="text-slate-400 ml-1">
+                                        (capital ${payment.principal.toFixed(2)} · interés $
+                                        {payment.interest.toFixed(2)})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-right shrink-0 ml-2">
+                                    <span className="font-bold text-emerald-600">
+                                      ${payment.amount.toFixed(2)}
+                                    </span>
+                                    <span className="text-slate-400 ml-1">
+                                      → ${payment.remainingAfter.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1 ml-2 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleMarkAsPaid(debt)}
-                        title={debt.status === 'paid' ? 'Marcar como activa' : 'Marcar como pagada'}
-                      >
-                        <CheckCircle2
-                          className={`h-4 w-4 ${debt.status === 'paid' ? 'text-green-600' : 'text-slate-400'}`}
-                        />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setEditingDebt(debt);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600"
-                        onClick={() => handleDelete(debt.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

@@ -37,6 +37,7 @@ model User {
   recurringExpenses     RecurringExpense[]
   assets                Asset[]
   debts                 Debt[]
+  debtPayments          DebtPayment[]
   goals                 Goal[]
   journals              DailyJournal[]
   accounts              Account[]
@@ -172,6 +173,7 @@ model Transaction {
   account         Account?             @relation(fields: [accountId], references: [id])
   accountLinks    AccountTransaction[]
   tags            TransactionTag[]
+  debtPayments    DebtPayment[]
 
   @@index([userId, date])
   @@index([userId, type, categoryId])
@@ -303,10 +305,33 @@ model Debt {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments DebtPayment[]
 
   @@index([userId])
   @@index([userId, status])
+}
+
+model DebtPayment {
+  id             String   @id @default(uuid())
+  userId         String
+  debtId         String
+  transactionId  String? // Egreso asociado (si el abono se registró desde una transacción)
+  amount         Float // Monto total del abono
+  principal      Float // Parte del abono aplicada al capital
+  interest       Float // Parte del abono aplicada a intereses
+  remainingAfter Float // Saldo de la deuda después de aplicar el abono
+  date           DateTime
+  note           String?
+  createdAt      DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debt        Debt         @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([debtId])
+  @@index([transactionId])
 }
 
 model Goal {

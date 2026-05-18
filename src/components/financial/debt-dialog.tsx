@@ -180,12 +180,12 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="annualRate">Tasa Anual % *</Label>
+              <Label htmlFor="annualRate">Tasa Anual %</Label>
               <Input
                 id="annualRate"
                 type="text"
                 inputMode="decimal"
-                value={formData.annualRate || ''}
+                value={formData.annualRate ? String(formData.annualRate) : ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '' || /^\d*\.?\d*$/.test(value)) {
@@ -195,11 +195,15 @@ export function DebtDialog({ open, onOpenChange, debt, onSave }: DebtDialogProps
                     });
                   }
                 }}
-                placeholder="15.5"
-                required
+                placeholder="0 = sin interés"
               />
             </div>
           </div>
+
+          <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2">
+            Deja la tasa en 0% si la deuda no genera intereses: cada abono bajará el capital
+            completo.
+          </p>
 
           <div className="space-y-2">
             <Label>Tipo de Deuda *</Label>

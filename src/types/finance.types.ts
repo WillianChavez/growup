@@ -53,6 +53,9 @@ export interface TransactionFormData {
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
   tags?: string[];
+  // Abono a deuda: si se define debtId, el egreso se registra como abono.
+  debtId?: string;
+  debtInterest?: number;
 }
 
 export interface TransactionCategoryFormData {

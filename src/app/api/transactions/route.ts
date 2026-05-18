@@ -4,6 +4,7 @@ import { transactionSchema } from '@/lib/validations/transaction.validation';
 import { getRequestAuth } from '@/lib/api-auth';
 import type { ApiResponse } from '@/types/api.types';
 import { TransactionCategoryService } from '@/services/transaction-category.service';
+import { FinancialService } from '@/services/financial.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,12 +72,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { debtId, debtInterest, ...transactionData } = validation.data;
+
     const transaction = await TransactionService.create(payload.userId, {
-      ...validation.data,
-      notes: validation.data.notes ?? null,
-      recurringFrequency: validation.data.recurringFrequency ?? null,
-      tags: validation.data.tags ?? null,
+      ...transactionData,
+      notes: transactionData.notes ?? null,
+      recurringFrequency: transactionData.recurringFrequency ?? null,
+      tags: transactionData.tags ?? null,
     });
+
+    // Si el egreso es un abono a deuda, registrar el abono y bajar el saldo.
+    if (debtId && transaction.type === 'expense') {
+      try {
+        await FinancialService.addDebtPayment(payload.userId, {
+          debtId,
+          amount: transaction.amount,
+          interest: debtInterest ?? 0,
+          date: transaction.date,
+          note: transaction.description,
+          transactionId: transaction.id,
+        });
+      } catch (debtError) {
+        // El egreso ya se creó; revertirlo para no dejar datos inconsistentes.
+        await TransactionService.delete(transaction.id, payload.userId);
+        const message =
+          debtError instanceof Error ? debtError.message : 'Error al registrar el abono';
+        return NextResponse.json<ApiResponse>({ success: false, error: message }, { status: 400 });
+      }
+    }
 
     return NextResponse.json<ApiResponse>(
       { success: true, data: transaction, message: 'Transacción creada exitosamente' },

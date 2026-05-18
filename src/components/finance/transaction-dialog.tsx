@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, X, Tag, Calendar as CalendarIcon, Check, ArrowLeft } from 'lucide-react';
+import { Loader2, X, Tag, Calendar as CalendarIcon, Check, ArrowLeft, Wallet } from 'lucide-react';
 import { format, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TransactionCategorySelector } from '@/components/finance/category-selector';
 import type { Transaction, TransactionFormData, TransactionType } from '@/types/finance.types';
+import type { Debt } from '@/types/financial.types';
 import { cn } from '@/lib/utils';
 
 interface TransactionDialogProps {
@@ -18,6 +19,16 @@ interface TransactionDialogProps {
   type?: TransactionType;
   onSave: (data: TransactionFormData) => Promise<void>;
 }
+
+const formatMoney = (value: number) =>
+  value.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Interés sugerido del periodo: saldo actual × tasa mensual (tasa anual / 12).
+// Con tasa 0% el interés es 0 y todo el abono baja el capital.
+const suggestInterest = (remainingAmount: number, annualRate: number) => {
+  if (annualRate <= 0 || remainingAmount <= 0) return 0;
+  return Math.round(remainingAmount * (annualRate / 100 / 12) * 100) / 100;
+};
 
 export function TransactionDialog({
   open,
@@ -39,6 +50,17 @@ export function TransactionDialog({
     notes: '',
   });
 
+  // Abono a deuda
+  const [isDebtPayment, setIsDebtPayment] = useState(false);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [loadingDebts, setLoadingDebts] = useState(false);
+  const [selectedDebtId, setSelectedDebtId] = useState<string>('');
+  const [interestInput, setInterestInput] = useState<string>('0');
+  const [interestEdited, setInterestEdited] = useState(false);
+
+  // El editar una transacción existente no permite reconvertirla en abono.
+  const canBeDebtPayment = formData.type === 'expense' && !transaction;
+
   useEffect(() => {
     if (open) {
       const amount = transaction?.amount || 0;
@@ -51,8 +73,54 @@ export function TransactionDialog({
         date: transaction?.date ? new Date(transaction.date) : new Date(),
         notes: transaction?.notes || '',
       });
+      setIsDebtPayment(false);
+      setSelectedDebtId('');
+      setInterestInput('0');
+      setInterestEdited(false);
+      setDebts([]); // Forzar recarga de deudas al reabrir el diálogo
     }
   }, [open, transaction, type]);
+
+  // Cargar deudas activas cuando se activa el modo abono.
+  useEffect(() => {
+    if (!open || !isDebtPayment || debts.length > 0) return;
+    let cancelled = false;
+    setLoadingDebts(true);
+    fetch('/api/financial/debts')
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((result) => {
+        if (!cancelled) setDebts((result.data as Debt[]) || []);
+      })
+      .catch(() => {
+        if (!cancelled) setDebts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDebts(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isDebtPayment, debts.length]);
+
+  const selectedDebt = debts.find((d) => d.id === selectedDebtId);
+
+  const handleSelectDebt = (debt: Debt) => {
+    setSelectedDebtId(debt.id);
+    const suggested = suggestInterest(debt.remainingAmount, debt.annualRate);
+    setInterestInput(String(suggested));
+    setInterestEdited(false);
+    setFormData((prev) => ({
+      ...prev,
+      description: prev.description.trim() ? prev.description : `Abono a ${debt.creditor}`,
+    }));
+  };
+
+  const parsedAmount = parseFloat(amountInput) || 0;
+  const parsedInterest = Math.min(Math.max(parseFloat(interestInput) || 0, 0), parsedAmount);
+  const principalAmount = Math.max(0, parsedAmount - parsedInterest);
+  const remainingAfter = selectedDebt
+    ? Math.max(0, selectedDebt.remainingAmount - principalAmount)
+    : 0;
 
   const handleKeyPress = (key: string | number) => {
     if (key === 'back') {
@@ -85,15 +153,26 @@ export function TransactionDialog({
       return;
     }
 
-    const parsedAmount = parseFloat(amountInput);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    const parsed = parseFloat(amountInput);
+    if (isNaN(parsed) || parsed <= 0) {
       alert('Por favor ingresa un monto válido mayor a 0');
+      return;
+    }
+
+    if (isDebtPayment && !selectedDebtId) {
+      alert('Por favor selecciona la deuda a la que deseas abonar');
       return;
     }
 
     setLoading(true);
     try {
-      await onSave({ ...formData, amount: parsedAmount });
+      await onSave({
+        ...formData,
+        amount: parsed,
+        ...(isDebtPayment && selectedDebtId
+          ? { debtId: selectedDebtId, debtInterest: parsedInterest }
+          : {}),
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving transaction:', error);
@@ -111,7 +190,7 @@ export function TransactionDialog({
           {transaction ? 'Editar Transacción' : `Nuevo ${transactionTypeLabel}`}
         </DialogTitle>
         {/* Modal Content */}
-        <div className="relative w-full bg-white dark:bg-slate-900 rounded-[3rem] p-8 animate-in slide-in-from-bottom sm:slide-in-from-top duration-300">
+        <div className="relative w-full bg-white dark:bg-slate-900 rounded-[3rem] p-8 animate-in slide-in-from-bottom sm:slide-in-from-top duration-300 max-h-[90vh] overflow-y-auto">
           {/* Handle móvil */}
           <div className="sm:hidden w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-8" />
 
@@ -129,7 +208,11 @@ export function TransactionDialog({
                 Registrar nuevo
               </p>
               <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">
-                {transaction ? 'Editar Transacción' : transactionTypeLabel}
+                {transaction
+                  ? 'Editar Transacción'
+                  : isDebtPayment
+                    ? 'ABONO A DEUDA'
+                    : transactionTypeLabel}
               </h2>
             </div>
             <button
@@ -155,7 +238,7 @@ export function TransactionDialog({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2 justify-center mb-8">
+            <div className="flex gap-2 justify-center mb-8 flex-wrap">
               <Popover open={showCategorySelector} onOpenChange={setShowCategorySelector}>
                 <PopoverTrigger asChild>
                   <button
@@ -203,7 +286,124 @@ export function TransactionDialog({
                   />
                 </PopoverContent>
               </Popover>
+
+              {canBeDebtPayment && (
+                <button
+                  type="button"
+                  onClick={() => setIsDebtPayment((prev) => !prev)}
+                  className={cn(
+                    'px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all',
+                    isDebtPayment
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  )}
+                >
+                  <Wallet size={14} />
+                  Abono a deuda
+                </button>
+              )}
             </div>
+
+            {/* Debt Payment Section */}
+            {isDebtPayment && (
+              <div className="mb-8 space-y-3 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-2xl p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
+                  Selecciona la deuda
+                </p>
+
+                {loadingDebts ? (
+                  <div className="flex items-center justify-center py-6 text-slate-400">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                ) : debts.length === 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 py-2">
+                    No tienes deudas activas registradas.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-44 overflow-y-auto">
+                    {debts.map((debt) => (
+                      <button
+                        key={debt.id}
+                        type="button"
+                        onClick={() => handleSelectDebt(debt)}
+                        className={cn(
+                          'w-full text-left px-3 py-2 rounded-xl border transition-all',
+                          selectedDebtId === debt.id
+                            ? 'border-indigo-500 bg-white dark:bg-slate-800 ring-2 ring-indigo-500'
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300'
+                        )}
+                      >
+                        <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                          {debt.creditor}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Saldo: ${formatMoney(debt.remainingAmount)} · {debt.annualRate}% anual
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedDebt && (
+                  <div className="space-y-3 pt-1">
+                    {selectedDebt.annualRate > 0 ? (
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                          Interés de este abono
+                        </label>
+                        <div className="flex items-center gap-1 mt-1 bg-white dark:bg-slate-800 rounded-xl px-3 border border-slate-200 dark:border-slate-700">
+                          <span className="text-slate-400 font-bold text-sm">$</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={interestInput}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                setInterestInput(value);
+                                setInterestEdited(true);
+                              }
+                            }}
+                            className="w-full bg-transparent border-none py-2 font-bold text-slate-900 dark:text-white outline-none text-sm"
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                          {interestEdited
+                            ? 'El resto del abono baja el capital.'
+                            : `Sugerido (${selectedDebt.annualRate}% anual). Puedes ajustarlo; el resto baja el capital.`}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        Sin interés (0%): todo el abono baja el capital.
+                      </p>
+                    )}
+
+                    <div className="rounded-xl bg-white dark:bg-slate-800 p-3 text-xs space-y-1">
+                      <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                        <span>Capital abonado</span>
+                        <span className="font-bold">${formatMoney(principalAmount)}</span>
+                      </div>
+                      {parsedInterest > 0 && (
+                        <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                          <span>Interés</span>
+                          <span className="font-bold">${formatMoney(parsedInterest)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-indigo-600 dark:text-indigo-400 pt-1 border-t border-slate-100 dark:border-slate-700">
+                        <span className="font-bold">Saldo después del abono</span>
+                        <span className="font-black">${formatMoney(remainingAfter)}</span>
+                      </div>
+                      {remainingAfter <= 0 && (
+                        <p className="text-emerald-600 dark:text-emerald-400 font-bold pt-1">
+                          ¡Esta deuda quedará saldada! 🎉
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Description Input (Hidden by default, can be shown with a button) */}
             <div className="mb-8">
@@ -246,7 +446,7 @@ export function TransactionDialog({
               ) : (
                 <>
                   <Check size={24} strokeWidth={4} />
-                  GUARDAR {transactionTypeLabel}
+                  {isDebtPayment ? 'GUARDAR ABONO' : `GUARDAR ${transactionTypeLabel}`}
                 </>
               )}
             </button>

@@ -24,4 +24,11 @@ export const transactionSchema = z.object({
   isRecurring: z.boolean().optional().default(false),
   recurringFrequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
   tags: z.array(z.string()).optional(),
+  // Abono a deuda: si se envía debtId, este egreso registra un abono.
+  debtId: z.string().uuid('ID de deuda inválido').optional(),
+  debtInterest: z
+    .number()
+    .finite('El interés debe ser un número válido')
+    .nonnegative('El interés no puede ser negativo')
+    .optional(),
 });
