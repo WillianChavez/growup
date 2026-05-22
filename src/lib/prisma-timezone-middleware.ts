@@ -19,6 +19,8 @@ const DATE_FIELDS_BY_MODEL: Record<string, string[]> = {
   Debt: ['startDate', 'endDate', 'paidDate'],
   Goal: ['targetDate', 'completedAt'],
   DailyJournal: ['date'],
+  WorkoutSession: ['date'],
+  BodyMetric: ['date'],
 };
 
 /**

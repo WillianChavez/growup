@@ -9,6 +9,7 @@ import {
   BookOpen,
   Wallet,
   Target,
+  Dumbbell,
   Settings,
   X,
   Sparkles,
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Lectura', href: '/reading', icon: BookOpen },
   { name: 'Finanzas', href: '/finance', icon: Wallet },
   { name: 'Objetivos', href: '/goals', icon: Target },
+  { name: 'Ejercicio', href: '/exercise', icon: Dumbbell },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ];
 

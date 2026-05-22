@@ -42,6 +42,8 @@ model User {
   journals              DailyJournal[]
   accounts              Account[]
   financialSnapshots    FinancialSnapshot[]
+  workoutSessions       WorkoutSession[]
+  bodyMetrics           BodyMetric[]
 }
 
 model Habit {
@@ -460,4 +462,42 @@ model AccountBalance {
 
   @@unique([accountId, date])
   @@index([accountId, date])
+}
+
+// ==================== EXERCISE MODELS ====================
+
+model WorkoutSession {
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime
+  focus       String // fuerza, cardio, pierna, pecho-espalda, full-body, movilidad, otro
+  durationMin Int? // Duración en minutos
+  intensity   String? // low, medium, high
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model BodyMetric {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime
+  weight    Float? // Peso corporal en libras
+  waist     Float? // Cintura (cm)
+  chest     Float? // Pecho (cm)
+  hip       Float? // Cadera (cm)
+  arm       Float? // Brazo (cm)
+  thigh     Float? // Muslo (cm)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date]) // Una medición por día
+  @@index([userId, date])
 }
