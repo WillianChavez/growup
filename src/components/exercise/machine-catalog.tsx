@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Info, Search, Star, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +89,42 @@ const CATALOG_ITEMS: CatalogItem[] = [
 });
 
 const FAVORITES_STORAGE_KEY = 'growup-exercise-favorites';
+const MOBILE_CAROUSEL_THRESHOLDS = [0, 0.25, 0.5, 0.65, 0.75, 0.9, 0.98, 1];
+
+interface MobileCarouselVisibility {
+  intersectionRatio: number;
+  isIntersecting: boolean;
+  top: number;
+}
+
+type ReportMobileCarouselVisibility = (
+  carouselId: string,
+  visibility: MobileCarouselVisibility | null
+) => void;
+
+function selectActiveMobileCarousel(visibilities: Map<string, MobileCarouselVisibility>) {
+  const visibleCarousels = [...visibilities.entries()].filter(
+    ([, visibility]) => visibility.isIntersecting && visibility.intersectionRatio > 0
+  );
+
+  if (visibleCarousels.length === 0) return null;
+
+  const fullyVisibleCarousels = visibleCarousels.filter(
+    ([, visibility]) => visibility.intersectionRatio >= 0.98
+  );
+
+  if (fullyVisibleCarousels.length > 0) {
+    fullyVisibleCarousels.sort(([, first], [, second]) => first.top - second.top);
+    return fullyVisibleCarousels[0][0];
+  }
+
+  visibleCarousels.sort(
+    ([, first], [, second]) =>
+      second.intersectionRatio - first.intersectionRatio || first.top - second.top
+  );
+
+  return visibleCarousels[0][0];
+}
 
 function normalize(value: string) {
   return value
@@ -170,50 +206,69 @@ function FavoriteButton({ isFavorite, itemName, onToggle }: FavoriteButtonProps)
 }
 
 function ExerciseImageCarousel({
+  carouselId,
   exerciseName,
   images,
   children,
+  isMobileAutoPlay,
+  onMobileVisibilityChange,
 }: {
+  carouselId: string;
   exerciseName: string;
   images: string[];
   children: ReactNode;
+  isMobileAutoPlay: boolean;
+  onMobileVisibilityChange: ReportMobileCarouselVisibility;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isVisibleOnTouchDevice, setIsVisibleOnTouchDevice] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
+    const card = container?.closest('article');
     const isTouchDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
-    if (!container || !isTouchDevice) return;
+    if (!card || !isTouchDevice) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setIsVisibleOnTouchDevice(entry.isIntersecting),
-      { threshold: 0.65 }
+      ([entry]) => {
+        onMobileVisibilityChange(carouselId, {
+          intersectionRatio: entry.intersectionRatio,
+          isIntersecting: entry.isIntersecting,
+          top: entry.boundingClientRect.top,
+        });
+      },
+      { threshold: MOBILE_CAROUSEL_THRESHOLDS }
     );
 
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
+    observer.observe(card);
+    return () => {
+      observer.disconnect();
+      onMobileVisibilityChange(carouselId, null);
+    };
+  }, [carouselId, onMobileVisibilityChange]);
 
   useEffect(() => {
-    if ((!isHovered && !isVisibleOnTouchDevice) || images.length < 2) return;
+    if ((!isHovered && !isMobileAutoPlay) || images.length < 2) return;
 
     const interval = window.setInterval(() => {
       setActiveImage((currentImage) => (currentImage + 1) % images.length);
     }, 1600);
 
     return () => window.clearInterval(interval);
-  }, [images.length, isHovered, isVisibleOnTouchDevice]);
+  }, [images.length, isHovered, isMobileAutoPlay]);
 
   return (
     <div
       ref={containerRef}
       className="relative aspect-[16/9] overflow-hidden border-b bg-slate-100 dark:bg-slate-900"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') setIsHovered(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse') setIsHovered(false);
+      }}
     >
       {images.map((image, index) => (
         <Image
@@ -261,15 +316,21 @@ function ExerciseImageCarousel({
 }
 
 function MachineCard({
+  carouselId,
   machine,
   isFavorite,
+  isMobileAutoPlay,
+  onMobileVisibilityChange,
   onToggleFavorite,
   weightRecords,
   isSavingWeight,
   onSaveWeight,
 }: {
+  carouselId: string;
   machine: GymMachine;
   isFavorite: boolean;
+  isMobileAutoPlay: boolean;
+  onMobileVisibilityChange: ReportMobileCarouselVisibility;
   onToggleFavorite: () => void;
   weightRecords: ExerciseWeightRecord[];
   isSavingWeight: boolean;
@@ -277,7 +338,13 @@ function MachineCard({
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:bg-slate-950 dark:hover:border-slate-700">
-      <ExerciseImageCarousel exerciseName={machine.name} images={machine.images}>
+      <ExerciseImageCarousel
+        carouselId={carouselId}
+        exerciseName={machine.name}
+        images={machine.images}
+        isMobileAutoPlay={isMobileAutoPlay}
+        onMobileVisibilityChange={onMobileVisibilityChange}
+      >
         {machine.machineNumber && (
           <div className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-md bg-slate-950 px-1.5 font-mono text-xs font-bold text-yellow-300 shadow dark:bg-yellow-400 dark:text-slate-950">
             #{machine.machineNumber}
@@ -318,15 +385,21 @@ function MachineCard({
 }
 
 function DumbbellCard({
+  carouselId,
   exercise,
   isFavorite,
+  isMobileAutoPlay,
+  onMobileVisibilityChange,
   onToggleFavorite,
   weightRecords,
   isSavingWeight,
   onSaveWeight,
 }: {
+  carouselId: string;
   exercise: DumbbellExercise;
   isFavorite: boolean;
+  isMobileAutoPlay: boolean;
+  onMobileVisibilityChange: ReportMobileCarouselVisibility;
   onToggleFavorite: () => void;
   weightRecords: ExerciseWeightRecord[];
   isSavingWeight: boolean;
@@ -334,7 +407,13 @@ function DumbbellCard({
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:bg-slate-950 dark:hover:border-slate-700">
-      <ExerciseImageCarousel exerciseName={exercise.name} images={exercise.images}>
+      <ExerciseImageCarousel
+        carouselId={carouselId}
+        exerciseName={exercise.name}
+        images={exercise.images}
+        isMobileAutoPlay={isMobileAutoPlay}
+        onMobileVisibilityChange={onMobileVisibilityChange}
+      >
         <FavoriteButton
           isFavorite={isFavorite}
           itemName={exercise.name}
@@ -374,6 +453,21 @@ export function MachineCatalog({ bodyPart }: { bodyPart: BodyPartId }) {
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [weightRecords, setWeightRecords] = useState<ExerciseWeightRecord[]>([]);
   const [savingExerciseKey, setSavingExerciseKey] = useState<string | null>(null);
+  const [activeMobileCarouselId, setActiveMobileCarouselId] = useState<string | null>(null);
+  const mobileCarouselVisibilities = useRef(new Map<string, MobileCarouselVisibility>());
+
+  const reportMobileCarouselVisibility = useCallback<ReportMobileCarouselVisibility>(
+    (carouselId, visibility) => {
+      if (visibility) mobileCarouselVisibilities.current.set(carouselId, visibility);
+      else mobileCarouselVisibilities.current.delete(carouselId);
+
+      const nextActiveCarousel = selectActiveMobileCarousel(mobileCarouselVisibilities.current);
+      setActiveMobileCarouselId((currentCarousel) =>
+        currentCarousel === nextActiveCarousel ? currentCarousel : nextActiveCarousel
+      );
+    },
+    []
+  );
 
   useEffect(() => {
     try {
@@ -536,8 +630,11 @@ export function MachineCatalog({ bodyPart }: { bodyPart: BodyPartId }) {
             item.kind === 'machine' ? (
               <MachineCard
                 key={getItemId(item)}
+                carouselId={getItemId(item)}
                 machine={item.data}
                 isFavorite={favorites.has(getItemId(item))}
+                isMobileAutoPlay={activeMobileCarouselId === getItemId(item)}
+                onMobileVisibilityChange={reportMobileCarouselVisibility}
                 onToggleFavorite={() => toggleFavorite(getItemId(item))}
                 weightRecords={recordsByExercise.get(`machine-${item.data.id}`) ?? []}
                 isSavingWeight={savingExerciseKey === `machine-${item.data.id}`}
@@ -548,8 +645,11 @@ export function MachineCatalog({ bodyPart }: { bodyPart: BodyPartId }) {
             ) : (
               <DumbbellCard
                 key={getItemId(item)}
+                carouselId={getItemId(item)}
                 exercise={item.data}
                 isFavorite={favorites.has(getItemId(item))}
+                isMobileAutoPlay={activeMobileCarouselId === getItemId(item)}
+                onMobileVisibilityChange={reportMobileCarouselVisibility}
                 onToggleFavorite={() => toggleFavorite(getItemId(item))}
                 weightRecords={recordsByExercise.get(`dumbbell-${item.data.id}`) ?? []}
                 isSavingWeight={savingExerciseKey === `dumbbell-${item.data.id}`}
