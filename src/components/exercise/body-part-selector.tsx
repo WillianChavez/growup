@@ -177,6 +177,7 @@ function BodyView({ side, onSelect }: BodyViewProps) {
         alt={side === 'front' ? 'Modelo anatómico de frente' : 'Modelo anatómico de espalda'}
         fill
         priority
+        unoptimized
         draggable={false}
         sizes="(max-width: 768px) 100vw, 540px"
         className="pointer-events-none select-none object-contain"
