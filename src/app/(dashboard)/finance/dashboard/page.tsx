@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, TrendingDown, PiggyBank, CreditCard, Shield, TrendingUp } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CreditCard,
+  DollarSign,
+  PiggyBank,
+  Shield,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -18,13 +27,12 @@ import {
   PointElement,
   LineElement,
   ArcElement,
-  BarElement,
   Filler,
   Tooltip,
   Legend,
   type TooltipItem,
 } from 'chart.js';
-import { Line, Pie, Bar } from 'react-chartjs-2';
+import { Line, Pie } from 'react-chartjs-2';
 import { cn } from '@/lib/utils';
 import type { FinancialDashboardKPIs } from '@/types/financial.types';
 import type { MonthlyTransactionGroup } from '@/types/finance.types';
@@ -38,7 +46,6 @@ ChartJS.register(
   PointElement,
   LineElement,
   ArcElement,
-  BarElement,
   Filler,
   Tooltip,
   Legend
@@ -159,89 +166,10 @@ export default function FinancialDashboardPage() {
     },
   };
 
-  // Preparar datos para el gráfico de barras horizontal de presupuesto
-  const budgetChartData = budgetSummary
-    ? {
-        labels: budgetSummary.expensesByCategory
-          .filter(
-            (cat: (typeof budgetSummary.expensesByCategory)[0]) =>
-              cat.amount > 0 || cat.actualAmount > 0
-          )
-          .map((cat: (typeof budgetSummary.expensesByCategory)[0]) => cat.categoryName),
-        datasets: [
-          {
-            label: 'Planeado',
-            data: budgetSummary.expensesByCategory
-              .filter(
-                (cat: (typeof budgetSummary.expensesByCategory)[0]) =>
-                  cat.amount > 0 || cat.actualAmount > 0
-              )
-              .map((cat: (typeof budgetSummary.expensesByCategory)[0]) => cat.amount),
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-            borderColor: 'rgb(59, 130, 246)',
-            borderWidth: 1,
-          },
-          {
-            label: 'Real',
-            data: budgetSummary.expensesByCategory
-              .filter(
-                (cat: (typeof budgetSummary.expensesByCategory)[0]) =>
-                  cat.amount > 0 || cat.actualAmount > 0
-              )
-              .map((cat: (typeof budgetSummary.expensesByCategory)[0]) => cat.actualAmount),
-            backgroundColor: 'rgba(239, 68, 68, 0.5)',
-            borderColor: 'rgb(239, 68, 68)',
-            borderWidth: 1,
-          },
-        ],
-      }
-    : null;
-
-  const budgetChartOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom' as const,
-      },
-      tooltip: {
-        callbacks: {
-          label: function (context: TooltipItem<'bar'>) {
-            const value = context.parsed.x;
-            if (value === null || value === undefined) return '';
-            const datasetLabel = context.dataset.label || '';
-            const total = budgetSummary?.totalMonthlyExpenses || 1;
-            const percentage = ((value / total) * 100).toFixed(1);
-            return `${datasetLabel}: ${formatCurrencyDisplay(value)} (${percentage}% del ppto total)`;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          font: {
-            size: 11,
-          },
-        },
-      },
-      y: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          font: {
-            size: 11,
-          },
-        },
-      },
-    },
-  };
+  const visibleBudgetCategories =
+    budgetSummary?.expensesByCategory.filter(
+      (category) => category.amount > 0 || category.actualAmount > 0
+    ) ?? [];
 
   // Preparar datos para el gráfico de barras apiladas (ingresos y gastos por mes)
   const monthNames = [
@@ -410,18 +338,14 @@ export default function FinancialDashboardPage() {
                           : 'text-blue-500'
                       )}
                     >
-                      {(
-                        (budgetSummary.actualMonthlyExpenses / budgetSummary.totalMonthlyExpenses) *
-                        100
-                      ).toFixed(1)}
-                      %
+                      {budgetSummary.budgetUsagePercentage.toFixed(1)}%
                     </span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{
-                        width: `${Math.min((budgetSummary.actualMonthlyExpenses / budgetSummary.totalMonthlyExpenses) * 100, 100)}%`,
+                        width: `${Math.min(budgetSummary.budgetUsagePercentage, 100)}%`,
                       }}
                       className={cn(
                         'h-full transition-all duration-500',
@@ -456,6 +380,28 @@ export default function FinancialDashboardPage() {
                             </span>
                           </div>
                         ))}
+                    </div>
+                  </div>
+                )}
+
+                {budgetSummary.unbudgetedCategoryCount > 0 && (
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>
+                        {budgetSummary.unbudgetedCategoryCount}{' '}
+                        {budgetSummary.unbudgetedCategoryCount === 1
+                          ? 'categoría no contemplada'
+                          : 'categorías no contempladas'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-amber-800 dark:text-amber-300">
+                        Gastos sin presupuesto asignado
+                      </span>
+                      <span className="font-bold text-amber-700 dark:text-amber-400">
+                        {formatCurrencyDisplay(budgetSummary.totalUnbudgetedExpenses)}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -592,26 +538,139 @@ export default function FinancialDashboardPage() {
           </Card>
         )}
 
-        {/* Gráfico de Presupuesto - Gastos por Categoría */}
-        {budgetSummary && budgetChartData && budgetSummary.expensesByCategory.length > 0 && (
+        {/* Control mensual de presupuesto por categoría */}
+        {budgetSummary && visibleBudgetCategories.length > 0 && (
           <Card className="flex flex-col">
-            <CardHeader className="items-center pb-0">
-              <CardTitle>Gastos del Presupuesto</CardTitle>
-              <CardDescription>Distribución de gastos por categoría</CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle>Gasto por categoría</CardTitle>
+                  <CardDescription>Presupuesto asignado contra gasto real del mes</CardDescription>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => (window.location.href = '/finance/budget')}
+                  className="shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Ajustar
+                </button>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              <div className="h-[250px] w-full">
-                <Bar data={budgetChartData} options={budgetChartOptions} />
+            <CardContent className="flex-1">
+              <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
+                {visibleBudgetCategories.map((category) => {
+                  const progress = category.isUnbudgeted
+                    ? 100
+                    : Math.min(category.usagePercentage, 100);
+                  const statusColor = category.isUnbudgeted
+                    ? 'bg-amber-500'
+                    : category.isOverBudget
+                      ? 'bg-red-500'
+                      : 'bg-emerald-500';
+
+                  return (
+                    <div key={category.category} className="space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base" aria-hidden="true">
+                              {category.emoji}
+                            </span>
+                            <span className="truncate text-sm font-semibold">
+                              {category.categoryName}
+                            </span>
+                            {category.isUnbudgeted ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                                Sin presupuesto
+                              </span>
+                            ) : category.isOverBudget ? (
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-400">
+                                Excedido
+                              </span>
+                            ) : category.actualAmount > 0 ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-slate-500">
+                            {category.isUnbudgeted
+                              ? `${formatCurrencyDisplay(category.actualAmount)} gastados sin asignación`
+                              : `${formatCurrencyDisplay(category.actualAmount)} de ${formatCurrencyDisplay(category.amount)}`}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {category.isUnbudgeted ? (
+                            <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                              No contemplado
+                            </span>
+                          ) : category.isOverBudget ? (
+                            <>
+                              <p className="text-xs font-bold text-red-600">
+                                +{formatCurrencyDisplay(Math.abs(category.remainingAmount))}
+                              </p>
+                              <p className="text-[10px] text-red-500">sobre presupuesto</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-xs font-bold text-emerald-600">
+                                {formatCurrencyDisplay(category.remainingAmount)}
+                              </p>
+                              <p className="text-[10px] text-slate-500">disponible</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            className={cn('h-full rounded-full', statusColor)}
+                          />
+                        </div>
+                        <span
+                          className={cn(
+                            'w-12 text-right text-[10px] font-bold tabular-nums',
+                            category.isUnbudgeted
+                              ? 'text-amber-600'
+                              : category.isOverBudget
+                                ? 'text-red-600'
+                                : 'text-slate-500'
+                          )}
+                        >
+                          {category.isUnbudgeted ? '—' : `${category.usagePercentage.toFixed(0)}%`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
-            <CardFooter className="flex-col gap-2 text-sm">
-              <div className="flex items-center gap-2 leading-none font-medium">
-                Total gastos: {formatCurrencyDisplay(budgetSummary.totalMonthlyExpenses)}/mes
-                <TrendingUp className="h-4 w-4" />
+            <CardFooter className="grid grid-cols-3 gap-2 border-t pt-4 text-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Asignado</p>
+                <p className="text-xs font-bold">
+                  {formatCurrencyDisplay(budgetSummary.totalMonthlyExpenses)}
+                </p>
               </div>
-              <div className="text-muted-foreground leading-none">
-                Balance disponible: {formatCurrencyDisplay(budgetSummary.availableBalance)} •{' '}
-                {budgetSummary.savingsRate.toFixed(1)}% ahorro
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Gastado</p>
+                <p className="text-xs font-bold">
+                  {formatCurrencyDisplay(budgetSummary.actualMonthlyExpenses)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                  {budgetSummary.remainingMonthlyBudget >= 0 ? 'Disponible' : 'Exceso'}
+                </p>
+                <p
+                  className={cn(
+                    'text-xs font-bold',
+                    budgetSummary.remainingMonthlyBudget >= 0 ? 'text-emerald-600' : 'text-red-600'
+                  )}
+                >
+                  {formatCurrencyDisplay(Math.abs(budgetSummary.remainingMonthlyBudget))}
+                </p>
               </div>
             </CardFooter>
           </Card>

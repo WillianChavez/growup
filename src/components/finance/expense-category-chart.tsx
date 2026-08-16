@@ -12,6 +12,7 @@ import {
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import { startOfMonth, startOfYear, isAfter, isBefore, endOfMonth, endOfYear } from 'date-fns';
+import { isOperatingFlow } from '@/lib/finance-transactions';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -21,6 +22,7 @@ interface ExpenseCategoryChartProps {
     type: string;
     amount: number;
     date: Date;
+    flowType?: string | null;
     category: {
       name: string;
       color: string;
@@ -122,7 +124,7 @@ export function ExpenseCategoryChart({ transactions }: ExpenseCategoryChartProps
 
   // Agrupar gastos por categoría
   const categoryTotals = filteredTransactions
-    .filter((t) => t.type === 'expense')
+    .filter((t) => isOperatingFlow(t.flowType) && t.type === 'expense')
     .reduce(
       (acc, transaction) => {
         const categoryName = transaction.category?.name || 'Sin categoría';

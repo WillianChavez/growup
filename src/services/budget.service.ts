@@ -122,27 +122,33 @@ export class BudgetService {
   static async getBudgetSummary(userId: string): Promise<BudgetSummary> {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const monthEndExclusive = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    const [incomeSources, recurringExpenses, transactionsRaw] = await Promise.all([
-      this.getIncomeSources(userId),
-      this.getRecurringExpenses(userId),
-      prisma.transaction.findMany({
-        where: {
-          userId,
-          date: {
-            gte: monthStart,
-            lte: monthEnd,
+    const [incomeSources, recurringExpenses, transactionsRaw, transactionCategories] =
+      await Promise.all([
+        this.getIncomeSources(userId),
+        this.getRecurringExpenses(userId),
+        prisma.transaction.findMany({
+          where: {
+            userId,
+            OR: [{ flowType: null }, { flowType: 'operating' }],
+            date: {
+              gte: monthStart,
+              lt: monthEndExclusive,
+            },
           },
-        },
-        include: {
-          category: true,
-        },
-      }),
-    ]);
+          include: {
+            category: true,
+          },
+        }),
+        prisma.transactionCategory.findMany({ where: { userId } }),
+      ]);
 
     // Tipar las transacciones correctamente
     const transactions: TransactionWithCategory[] = transactionsRaw as TransactionWithCategory[];
+    const categoryEmojiByName = new Map(
+      transactionCategories.map((category) => [category.name, category.emoji])
+    );
 
     // Calcular ingresos mensuales planeados
     const totalMonthlyIncome = sumAsMoney(
@@ -176,19 +182,25 @@ export class BudgetService {
       .reduce(
         (acc: BudgetSummary['expensesByCategory'], expense: RecurringExpense) => {
           const monthlyAmount = this.convertToMonthly(expense.amount, expense.frequency);
+          const categoryName = this.normalizeExpenseCategory(expense.category);
           const existing = acc.find(
-            (item: BudgetSummary['expensesByCategory'][number]) =>
-              item.category === expense.category
+            (item: BudgetSummary['expensesByCategory'][number]) => item.category === categoryName
           );
 
           if (existing) {
             existing.amount = fromCents(toCents(existing.amount) + toCents(monthlyAmount));
           } else {
             acc.push({
-              category: expense.category,
-              categoryName: this.getCategoryLabel(expense.category),
+              category: categoryName,
+              categoryName,
+              emoji: categoryEmojiByName.get(categoryName) || '💸',
               amount: monthlyAmount,
               actualAmount: 0,
+              remainingAmount: monthlyAmount,
+              usagePercentage: 0,
+              isBudgeted: true,
+              isOverBudget: false,
+              isUnbudgeted: false,
               percentage: 0,
               isEssential: expense.isEssential,
             });
@@ -203,14 +215,8 @@ export class BudgetService {
       .filter((t: TransactionWithCategory) => t.type === 'expense')
       .forEach((t: TransactionWithCategory) => {
         const catName = t.category?.name || 'Otro';
-        // Buscamos si hay un item de presupuesto que coincida con el nombre O con el mapeo interno
-        const budgetKey = BudgetService.EXPENSE_CATEGORY_MAP[catName];
-
         const existing = expensesByCategory.find(
-          (item: BudgetSummary['expensesByCategory'][number]) =>
-            item.category === catName ||
-            item.categoryName === catName ||
-            (budgetKey && item.category === budgetKey)
+          (item: BudgetSummary['expensesByCategory'][number]) => item.category === catName
         );
 
         if (existing) {
@@ -220,8 +226,14 @@ export class BudgetService {
           expensesByCategory.push({
             category: catName,
             categoryName: catName,
+            emoji: t.category?.emoji || '💸',
             amount: 0,
             actualAmount: normalizeMoney(t.amount),
+            remainingAmount: normalizeMoney(-t.amount),
+            usagePercentage: 0,
+            isBudgeted: false,
+            isOverBudget: false,
+            isUnbudgeted: true,
             percentage: 0,
             isEssential: false,
           });
@@ -232,7 +244,22 @@ export class BudgetService {
     expensesByCategory.forEach((category: BudgetSummary['expensesByCategory'][number]) => {
       category.percentage =
         totalMonthlyIncome > 0 ? (category.amount / totalMonthlyIncome) * 100 : 0;
+      category.remainingAmount = normalizeMoney(category.amount - category.actualAmount);
+      category.usagePercentage =
+        category.amount > 0 ? (category.actualAmount / category.amount) * 100 : 0;
+      category.isBudgeted = category.amount > 0;
+      category.isOverBudget = category.amount > 0 && category.actualAmount > category.amount;
+      category.isUnbudgeted = category.amount === 0 && category.actualAmount > 0;
     });
+
+    const totalUnbudgetedExpenses = sumAsMoney(
+      expensesByCategory
+        .filter((category) => category.isUnbudgeted)
+        .map((category) => category.actualAmount)
+    );
+    const remainingMonthlyBudget = normalizeMoney(totalMonthlyExpenses - actualMonthlyExpenses);
+    const budgetUsagePercentage =
+      totalMonthlyExpenses > 0 ? (actualMonthlyExpenses / totalMonthlyExpenses) * 100 : 0;
 
     // Agrupar ingresos planeados por categoría
     const incomeByCategory = incomeSources
@@ -240,15 +267,16 @@ export class BudgetService {
       .reduce(
         (acc: BudgetSummary['incomeByCategory'], source: IncomeSource) => {
           const monthlyAmount = BudgetService.convertToMonthly(source.amount, source.frequency);
+          const categoryName = BudgetService.normalizeIncomeCategory(source.category);
           const existing = acc.find(
-            (item: BudgetSummary['incomeByCategory'][number]) => item.category === source.category
+            (item: BudgetSummary['incomeByCategory'][number]) => item.category === categoryName
           );
 
           if (existing) {
             existing.amount = fromCents(toCents(existing.amount) + toCents(monthlyAmount));
           } else {
             acc.push({
-              category: source.category,
+              category: categoryName,
               amount: normalizeMoney(monthlyAmount),
               actualAmount: 0,
               percentage: 0,
@@ -264,11 +292,8 @@ export class BudgetService {
       .filter((t: TransactionWithCategory) => t.type === 'income')
       .forEach((t: TransactionWithCategory) => {
         const catName = t.category?.name || 'Otro';
-        const budgetKey = BudgetService.INCOME_CATEGORY_MAP[catName];
-
         const existing = incomeByCategory.find(
-          (item: BudgetSummary['incomeByCategory'][number]) =>
-            item.category === catName || (budgetKey && item.category === budgetKey)
+          (item: BudgetSummary['incomeByCategory'][number]) => item.category === catName
         );
 
         if (existing) {
@@ -293,14 +318,20 @@ export class BudgetService {
       totalMonthlyIncome,
       totalMonthlyExpenses,
       actualMonthlyExpenses,
+      remainingMonthlyBudget,
+      budgetUsagePercentage,
+      totalUnbudgetedExpenses,
+      unbudgetedCategoryCount: expensesByCategory.filter((category) => category.isUnbudgeted)
+        .length,
+      overBudgetCategoryCount: expensesByCategory.filter((category) => category.isOverBudget)
+        .length,
       availableBalance,
       savingsRate,
-      expensesByCategory: expensesByCategory.sort(
-        (
-          a: BudgetSummary['expensesByCategory'][number],
-          b: BudgetSummary['expensesByCategory'][number]
-        ) => b.amount - a.amount
-      ),
+      expensesByCategory: expensesByCategory.sort((a, b) => {
+        if (a.isUnbudgeted !== b.isUnbudgeted) return a.isUnbudgeted ? -1 : 1;
+        if (a.isOverBudget !== b.isOverBudget) return a.isOverBudget ? -1 : 1;
+        return b.actualAmount - a.actualAmount || b.amount - a.amount;
+      }),
       incomeByCategory: incomeByCategory.sort(
         (
           a: BudgetSummary['incomeByCategory'][number],
@@ -310,41 +341,33 @@ export class BudgetService {
     };
   }
 
-  // Mapeo de categorías de transacciones (BD) a categorías de presupuesto (Types)
-  private static readonly EXPENSE_CATEGORY_MAP: Record<string, string> = {
-    Alimentación: 'groceries',
-    Alimentos: 'groceries',
-    Transporte: 'transportation',
-    Vivienda: 'rent',
-    Renta: 'rent',
-    Hipoteca: 'rent',
-    Entretenimiento: 'entertainment',
-    Salud: 'health',
-    Educación: 'education',
-    Servicios: 'utilities',
-    Luz: 'utilities',
-    Agua: 'utilities',
-    Suscripciones: 'subscriptions',
-    Internet: 'subscriptions',
-    Compras: 'other',
-    Otro: 'other',
-    Otros: 'other',
-  };
+  private static normalizeExpenseCategory(category: string): string {
+    const legacyCategories: Record<string, string> = {
+      utilities: 'Servicios',
+      internet: 'Internet',
+      subscriptions: 'Servicios',
+      transportation: 'Transporte',
+      groceries: 'Alimentación',
+      health: 'Salud',
+      rent: 'Vivienda',
+      education: 'Educación',
+      entertainment: 'Entretenimiento',
+      other: 'Otro Gasto',
+    };
+    return legacyCategories[category] || category;
+  }
 
-  private static readonly INCOME_CATEGORY_MAP: Record<string, string> = {
-    Salario: 'salary',
-    Sueldo: 'salary',
-    Freelance: 'freelance',
-    Proyectos: 'freelance',
-    Inversiones: 'investment',
-    Investment: 'investment',
-    Negocio: 'business',
-    Business: 'business',
-    Renta: 'rental',
-    Alquiler: 'rental',
-    Otro: 'other',
-    Otros: 'other',
-  };
+  private static normalizeIncomeCategory(category: string): string {
+    const legacyCategories: Record<string, string> = {
+      salary: 'Salario',
+      freelance: 'Freelance',
+      business: 'Negocio',
+      investment: 'Inversiones',
+      rental: 'Alquiler',
+      other: 'Otro Ingreso',
+    };
+    return legacyCategories[category] || category;
+  }
 
   private static convertToMonthly(amount: number, frequency: string): number {
     const normalizedAmount = normalizeMoney(amount);
@@ -361,26 +384,5 @@ export class BudgetService {
       default:
         return normalizedAmount;
     }
-  }
-
-  private static getCategoryLabel(category: string): string {
-    const labels: Record<string, string> = {
-      utilities: 'Servicios',
-      internet: 'Internet/Telefonía',
-      subscriptions: 'Suscripciones',
-      transportation: 'Transporte',
-      groceries: 'Alimentos',
-      health: 'Salud/Seguros',
-      rent: 'Renta/Hipoteca',
-      education: 'Educación',
-      entertainment: 'Entretenimiento',
-      salary: 'Salario',
-      freelance: 'Freelance',
-      investment: 'Inversiones',
-      business: 'Negocio',
-      rental: 'Renta',
-      other: 'Otros',
-    };
-    return labels[category] || category;
   }
 }

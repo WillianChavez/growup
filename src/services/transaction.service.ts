@@ -8,6 +8,7 @@ import type {
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { normalizeMoney, sumAsMoney, toCents, fromCents } from '@/lib/money';
 import { normalizeTagNames } from '@/lib/entity-tags';
+import { isOperatingFlow } from '@/lib/finance-transactions';
 
 type TransactionRecord = {
   id: string;
@@ -20,6 +21,8 @@ type TransactionRecord = {
   date: Date;
   isRecurring: boolean;
   recurringFrequency: string | null;
+  accountId: string | null;
+  flowType: string | null;
   createdAt: Date;
   updatedAt: Date;
   category: Transaction['category'];
@@ -190,6 +193,8 @@ export class TransactionService {
       monthlyGroups[monthKey].transactions.push(transaction);
 
       // Calcular totales
+      if (!isOperatingFlow(t.flowType)) return;
+
       if (t.type === 'income') {
         monthlyGroups[monthKey].totalIncome = normalizeMoney(
           monthlyGroups[monthKey].totalIncome + t.amount
@@ -297,16 +302,19 @@ export class TransactionService {
     const monthEnd = endOfMonth(now);
 
     const allTransactions = await this.findAllByUser(userId);
+    const operatingTransactions = allTransactions.filter((transaction) =>
+      isOperatingFlow(transaction.flowType)
+    );
     const thisMonthTransactions = allTransactions.filter(
-      (t) => t.date >= monthStart && t.date <= monthEnd
+      (t) => isOperatingFlow(t.flowType) && t.date >= monthStart && t.date <= monthEnd
     );
 
     const totalIncome = sumAsMoney(
-      allTransactions.filter((t) => t.type === 'income').map((t) => t.amount)
+      operatingTransactions.filter((t) => t.type === 'income').map((t) => t.amount)
     );
 
     const totalExpenses = sumAsMoney(
-      allTransactions.filter((t) => t.type === 'expense').map((t) => t.amount)
+      operatingTransactions.filter((t) => t.type === 'expense').map((t) => t.amount)
     );
 
     const monthlyIncome = sumAsMoney(

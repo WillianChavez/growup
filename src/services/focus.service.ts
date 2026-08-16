@@ -324,6 +324,7 @@ export class FocusService {
       prisma.transaction.findMany({
         where: {
           userId,
+          OR: [{ flowType: null }, { flowType: 'operating' }],
           date: { gte: previousStart, lte: currentEnd },
         },
       }),

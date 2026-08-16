@@ -38,6 +38,24 @@ interface RecurringExpenseDialogProps {
   onSave: (data: RecurringExpenseFormData) => Promise<void>;
 }
 
+const LEGACY_EXPENSE_CATEGORIES: Record<string, string> = {
+  groceries: 'Alimentación',
+  transportation: 'Transporte',
+  rent: 'Vivienda',
+  entertainment: 'Entretenimiento',
+  health: 'Salud',
+  education: 'Educación',
+  utilities: 'Servicios',
+  subscriptions: 'Servicios',
+  internet: 'Internet',
+  other: 'Otro Gasto',
+};
+
+function normalizeExpenseCategory(category: string | undefined): string {
+  if (!category) return 'Servicios';
+  return LEGACY_EXPENSE_CATEGORIES[category] || category;
+}
+
 export function RecurringExpenseDialog({
   open,
   onOpenChange,
@@ -50,7 +68,7 @@ export function RecurringExpenseDialog({
     name: '',
     amount: 0,
     frequency: 'monthly',
-    category: 'utilities',
+    category: 'Servicios',
     isEssential: true,
   });
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
@@ -65,8 +83,8 @@ export function RecurringExpenseDialog({
         name: expense?.name || '',
         amount,
         frequency: expense?.frequency || 'monthly',
-        category: expense?.category || 'utilities',
-        isEssential: expense?.isEssential || true,
+        category: normalizeExpenseCategory(expense?.category),
+        isEssential: expense?.isEssential ?? true,
       });
 
       const loadCategories = async () => {
@@ -77,23 +95,8 @@ export function RecurringExpenseDialog({
     }
   }, [open, expense, fetchCategories]);
 
-  // Mapa inverso para encontrar el nombre en la BD si tenemos el key de presupuesto
-  const EXPENSE_MAP_REVERSE: Record<string, string> = {
-    groceries: 'Alimentación',
-    transportation: 'Transporte',
-    rent: 'Vivienda',
-    entertainment: 'Entretenimiento',
-    health: 'Salud',
-    education: 'Educación',
-    utilities: 'Servicios',
-    subscriptions: 'Suscripciones',
-    internet: 'Internet',
-    other: 'Otro',
-  };
-
   const selectedCategory = categories.find(
-    (c: TransactionCategory) =>
-      c.name === formData.category || EXPENSE_MAP_REVERSE[formData.category] === c.name
+    (c: TransactionCategory) => c.name === normalizeExpenseCategory(formData.category)
   );
 
   const handleSubmit = async (e: React.FormEvent) => {

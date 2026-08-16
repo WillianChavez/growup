@@ -34,6 +34,20 @@ interface IncomeSourceDialogProps {
   onSave: (data: IncomeSourceFormData) => Promise<void>;
 }
 
+const LEGACY_INCOME_CATEGORIES: Record<string, string> = {
+  salary: 'Salario',
+  freelance: 'Freelance',
+  business: 'Negocio',
+  investment: 'Inversiones',
+  rental: 'Alquiler',
+  other: 'Otro Ingreso',
+};
+
+function normalizeIncomeCategory(category: string | undefined): string {
+  if (!category) return 'Salario';
+  return LEGACY_INCOME_CATEGORIES[category] || category;
+}
+
 export function IncomeSourceDialog({
   open,
   onOpenChange,
@@ -46,7 +60,7 @@ export function IncomeSourceDialog({
     name: '',
     amount: 0,
     frequency: 'monthly',
-    category: 'salary',
+    category: 'Salario',
     isPrimary: false,
   });
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
@@ -61,8 +75,8 @@ export function IncomeSourceDialog({
         name: incomeSource?.name || '',
         amount,
         frequency: incomeSource?.frequency || 'monthly',
-        category: incomeSource?.category || 'salary',
-        isPrimary: incomeSource?.isPrimary || false,
+        category: normalizeIncomeCategory(incomeSource?.category),
+        isPrimary: incomeSource?.isPrimary ?? false,
       });
 
       const loadCategories = async () => {
@@ -73,18 +87,8 @@ export function IncomeSourceDialog({
     }
   }, [open, incomeSource, fetchCategories]);
 
-  const INCOME_MAP_REVERSE: Record<string, string> = {
-    salary: 'Salario',
-    freelance: 'Freelance',
-    business: 'Negocio',
-    investment: 'Inversiones',
-    rental: 'Renta',
-    other: 'Otros',
-  };
-
   const selectedCategory = categories.find(
-    (c: TransactionCategory) =>
-      c.name === formData.category || INCOME_MAP_REVERSE[formData.category] === c.name
+    (c: TransactionCategory) => c.name === normalizeIncomeCategory(formData.category)
   );
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -54,6 +54,7 @@ import { es } from 'date-fns/locale';
 import type { Transaction, TransactionFormData } from '@/types/finance.types';
 import { formatCurrencyDisplay } from '@/lib/currency-utils';
 import { cn } from '@/lib/utils';
+import { isOperatingFlow } from '@/lib/finance-transactions';
 
 type TimeRange = 'Día' | 'Semana' | 'Mes';
 
@@ -128,16 +129,20 @@ export default function FinancePage() {
       return transactionDate >= startDate && transactionDate <= endDate;
     });
 
-    const ingresos = filteredTransactions
+    const operatingTransactions = filteredTransactions.filter((transaction) =>
+      isOperatingFlow(transaction.flowType)
+    );
+
+    const ingresos = operatingTransactions
       .filter((t) => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const egresos = filteredTransactions
+    const egresos = operatingTransactions
       .filter((t) => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
     // Calcular gastos por categoría
-    const expensesByCategory = filteredTransactions
+    const expensesByCategory = operatingTransactions
       .filter((t) => t.type === 'expense')
       .reduce(
         (acc, transaction) => {

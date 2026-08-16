@@ -84,13 +84,24 @@ export interface BudgetSummary {
   totalMonthlyIncome: number;
   totalMonthlyExpenses: number;
   actualMonthlyExpenses: number; // Added for comparison
+  remainingMonthlyBudget: number;
+  budgetUsagePercentage: number;
+  totalUnbudgetedExpenses: number;
+  unbudgetedCategoryCount: number;
+  overBudgetCategoryCount: number;
   availableBalance: number;
   savingsRate: number; // Porcentaje
   expensesByCategory: {
     category: string;
     categoryName: string;
+    emoji: string;
     amount: number;
     actualAmount: number; // Added for comparison
+    remainingAmount: number;
+    usagePercentage: number;
+    isBudgeted: boolean;
+    isOverBudget: boolean;
+    isUnbudgeted: boolean;
     percentage: number;
     isEssential: boolean;
   }[];

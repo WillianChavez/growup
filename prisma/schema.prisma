@@ -44,6 +44,7 @@ model User {
   financialSnapshots    FinancialSnapshot[]
   workoutSessions       WorkoutSession[]
   bodyMetrics           BodyMetric[]
+  exerciseWeightRecords ExerciseWeightRecord[]
 }
 
 model Habit {
@@ -117,7 +118,7 @@ model Book {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   quotes BookQuote[]
   tags   BookTag[]
 
@@ -142,7 +143,7 @@ model BookQuote {
 
 model BookTag {
   id        String   @id @default(uuid())
-  bookId     String
+  bookId    String
   name      String
   order     Int      @default(0)
   createdAt DateTime @default(now())
@@ -170,12 +171,12 @@ model Transaction {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        TransactionCategory  @relation(fields: [categoryId], references: [id])
-  account         Account?             @relation(fields: [accountId], references: [id])
-  accountLinks    AccountTransaction[]
-  tags            TransactionTag[]
-  debtPayments    DebtPayment[]
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     TransactionCategory  @relation(fields: [categoryId], references: [id])
+  account      Account?             @relation(fields: [accountId], references: [id])
+  accountLinks AccountTransaction[]
+  tags         TransactionTag[]
+  debtPayments DebtPayment[]
 
   @@index([userId, date])
   @@index([userId, type, categoryId])
@@ -337,18 +338,18 @@ model DebtPayment {
 }
 
 model Goal {
-  id               String          @id @default(uuid())
-  userId           String
-  title            String
-  description      String?
-  category         String // personal, professional, health, financial, etc.
-  priority         String          @default("medium") // low, medium, high
-  status           String          @default("not-started") // not-started, in-progress, completed, abandoned
-  targetDate       DateTime?
-  progress         Int             @default(0) // 0-100
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  completedAt      DateTime?
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  category    String // personal, professional, health, financial, etc.
+  priority    String    @default("medium") // low, medium, high
+  status      String    @default("not-started") // not-started, in-progress, completed, abandoned
+  targetDate  DateTime?
+  progress    Int       @default(0) // 0-100
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
 
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   milestones GoalMilestone[]
@@ -357,17 +358,17 @@ model Goal {
 }
 
 model GoalMilestone {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   goalId      String
   title       String
-  completed   Boolean  @default(false)
-  status      String   @default("not-started") // not-started, in-progress, completed
+  completed   Boolean   @default(false)
+  status      String    @default("not-started") // not-started, in-progress, completed
   startDate   DateTime?
   targetDate  DateTime?
   completedAt DateTime?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
 
@@ -500,4 +501,21 @@ model BodyMetric {
 
   @@unique([userId, date]) // Una medición por día
   @@index([userId, date])
+}
+
+model ExerciseWeightRecord {
+  id           String   @id @default(uuid())
+  userId       String
+  exerciseId   String
+  exerciseType String // machine, dumbbell
+  weight       Float // Valor introducido por el usuario
+  unit         String // kg, lb
+  weightKg     Float // Valor normalizado para comparaciones y gráficas futuras
+  recordedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, exerciseType, exerciseId, recordedAt])
 }

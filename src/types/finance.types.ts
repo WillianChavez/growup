@@ -9,6 +9,8 @@ export interface Transaction {
   date: Date;
   isRecurring: boolean;
   recurringFrequency: RecurringFrequency | null;
+  accountId?: string | null;
+  flowType?: string | null;
   tags: string[] | null;
   createdAt: Date;
   updatedAt: Date;

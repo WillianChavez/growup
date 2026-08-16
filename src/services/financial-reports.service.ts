@@ -35,6 +35,7 @@ export class FinancialReportsService {
     const transactionsRaw = await prisma.transaction.findMany({
       where: {
         userId,
+        OR: [{ flowType: null }, { flowType: 'operating' }],
         date: {
           gte: startDate,
           lte: endDate,
@@ -532,6 +533,7 @@ export class FinancialReportsService {
       where: {
         userId,
         type: 'expense',
+        OR: [{ flowType: null }, { flowType: 'operating' }],
         date: {
           gte: threeMonthsAgo,
         },

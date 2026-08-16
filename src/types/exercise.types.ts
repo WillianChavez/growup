@@ -78,3 +78,19 @@ export interface WeightGoalSync {
   completedMilestones: string[];
   progress: number;
 }
+
+export type WeightUnit = 'kg' | 'lb';
+export type ExerciseType = 'machine' | 'dumbbell';
+
+export interface ExerciseWeightRecord {
+  id: string;
+  userId: string;
+  exerciseId: string;
+  exerciseType: ExerciseType;
+  weight: number;
+  unit: WeightUnit;
+  weightKg: number;
+  recordedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
