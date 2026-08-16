@@ -149,32 +149,20 @@ function getSearchableText(item: CatalogItem) {
 function matchesBodyPart(item: CatalogItem, bodyPart: BodyPartId) {
   if (bodyPart === 'cardio') return item.category === 'cardio';
 
-  const muscles = normalize(item.data.muscles.join(' '));
-  return BODY_PART_KEYWORDS[bodyPart].some((keyword) => muscles.includes(normalize(keyword)));
+  const primaryMuscle = normalize(item.data.muscles[0] ?? '');
+  return BODY_PART_KEYWORDS[bodyPart].some((keyword) => primaryMuscle.includes(normalize(keyword)));
 }
 
-function MuscleBadges({ muscles, limit = 2 }: { muscles: string[]; limit?: number }) {
-  const remainingMuscles = muscles.slice(limit);
+function PrimaryMuscleBadge({ muscles }: { muscles: string[] }) {
+  const primaryMuscle = muscles[0];
+
+  if (!primaryMuscle) return null;
 
   return (
-    <div
-      className="flex min-h-5 flex-wrap items-center gap-1"
-      aria-label={`Músculos: ${muscles.join(', ')}`}
-    >
-      {muscles.slice(0, limit).map((muscle) => (
-        <Badge key={muscle} variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
-          {muscle}
-        </Badge>
-      ))}
-      {remainingMuscles.length > 0 && (
-        <Badge
-          variant="outline"
-          className="h-5 px-1.5 text-[10px] font-normal text-slate-500"
-          title={remainingMuscles.join(', ')}
-        >
-          +{remainingMuscles.length}
-        </Badge>
-      )}
+    <div className="flex min-h-5 items-center" aria-label={`Músculo principal: ${primaryMuscle}`}>
+      <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
+        {primaryMuscle}
+      </Badge>
     </div>
   );
 }
@@ -366,7 +354,7 @@ function MachineCard({
         </div>
 
         <div className="mt-auto">
-          <MuscleBadges muscles={machine.muscles} />
+          <PrimaryMuscleBadge muscles={machine.muscles} />
         </div>
 
         {machine.category !== 'cardio' && (
@@ -430,7 +418,7 @@ function DumbbellCard({
         </div>
 
         <div className="mt-auto">
-          <MuscleBadges muscles={exercise.muscles} limit={1} />
+          <PrimaryMuscleBadge muscles={exercise.muscles} />
         </div>
 
         <ExerciseWeightInput

@@ -15,6 +15,7 @@ export interface DumbbellExercise {
   alias: string;
   images: [string, string];
   category: DumbbellCategory;
+  /** Músculo principal primero; los demás son secundarios. */
   muscles: string[];
   difficulty: ExerciseDifficulty;
   description: string;

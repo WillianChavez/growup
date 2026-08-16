@@ -7,6 +7,7 @@ export interface GymMachine {
   alias: string;
   images: [string, string];
   category: MachineCategory;
+  /** Músculo principal primero; los demás son secundarios. */
   muscles: string[];
   description: string;
 }
@@ -135,6 +136,24 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     category: 'torso',
     muscles: ['Pectorales', 'Tríceps', 'Deltoide anterior'],
     description: 'Empuja al frente desde el asiento para entrenar el pecho con apoyo estable.',
+  },
+  {
+    id: 'press-banca-barra',
+    name: 'Press de banca con barra',
+    alias: 'Barbell bench press',
+    images: machineImagePair('press-banca-barra'),
+    category: 'torso',
+    muscles: ['Pectoral mayor', 'Tríceps', 'Deltoide anterior'],
+    description: 'Empuja la barra desde el pecho en un banco plano con los pies firmes.',
+  },
+  {
+    id: 'press-inclinado-barra',
+    name: 'Press inclinado con barra',
+    alias: 'Incline barbell bench press',
+    images: machineImagePair('press-inclinado-barra'),
+    category: 'torso',
+    muscles: ['Pectoral superior', 'Tríceps', 'Deltoide anterior'],
+    description: 'Empuja la barra desde un banco inclinado para priorizar la parte alta del pecho.',
   },
   {
     id: 'rear-delt',
@@ -275,9 +294,10 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     name: 'Smith',
     alias: 'Máquina Smith',
     images: machineImagePair('smith'),
-    category: 'multifuncional',
-    muscles: ['Piernas', 'Glúteos', 'Pecho', 'Hombros'],
-    description: 'Barra guiada para sentadillas, presses y otros ejercicios con peso libre.',
+    category: 'piernas',
+    muscles: ['Cuádriceps', 'Glúteos', 'Isquiotibiales'],
+    description:
+      'Barra guiada para sentadillas y otros movimientos de piernas con recorrido estable.',
   },
   {
     id: 'assisted-dip-chin',
