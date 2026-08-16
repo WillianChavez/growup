@@ -210,6 +210,31 @@ export class BudgetService {
         [] as BudgetSummary['expensesByCategory']
       );
 
+    // Incluir también las categorías de gasto que todavía no tienen presupuesto ni movimientos.
+    // Así el dashboard puede señalar cuáles siguen sin contemplarse, en lugar de ocultarlas.
+    transactionCategories
+      .filter((category) => category.type === 'expense' || category.type === 'both')
+      .forEach((transactionCategory) => {
+        if (expensesByCategory.some((category) => category.category === transactionCategory.name)) {
+          return;
+        }
+
+        expensesByCategory.push({
+          category: transactionCategory.name,
+          categoryName: transactionCategory.name,
+          emoji: transactionCategory.emoji || '💸',
+          amount: 0,
+          actualAmount: 0,
+          remainingAmount: 0,
+          usagePercentage: 0,
+          isBudgeted: false,
+          isOverBudget: false,
+          isUnbudgeted: false,
+          percentage: 0,
+          isEssential: false,
+        });
+      });
+
     // Asignar gastos reales por categoría
     transactions
       .filter((t: TransactionWithCategory) => t.type === 'expense')

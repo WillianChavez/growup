@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
-  CheckCircle2,
   CreditCard,
   DollarSign,
   PiggyBank,
@@ -50,6 +49,75 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+type BudgetCategorySummary = BudgetSummary['expensesByCategory'][number];
+
+function CategoryBudgetBar({ category }: { category: BudgetCategorySummary }) {
+  if (!category.isBudgeted) {
+    return (
+      <div className="space-y-1">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          {category.actualAmount > 0 && <div className="h-full w-full bg-amber-500" />}
+        </div>
+        <div className="flex justify-between text-[9px] text-slate-400">
+          <span>{category.actualAmount > 0 ? 'Gasto sin límite definido' : 'Sin movimientos'}</span>
+          <span>Sin presupuesto</span>
+        </div>
+      </div>
+    );
+  }
+
+  const usagePercentage = Math.max(category.usagePercentage, 0);
+  const scaleMaximum =
+    usagePercentage > 100 ? Math.max(125, Math.ceil(usagePercentage / 25) * 25) : 100;
+  const budgetMarkerPosition = (100 / scaleMaximum) * 100;
+  const withinBudgetWidth = (Math.min(usagePercentage, 100) / scaleMaximum) * 100;
+  const overflowWidth = (Math.max(usagePercentage - 100, 0) / scaleMaximum) * 100;
+
+  return (
+    <div className="space-y-1">
+      <div className="relative h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${withinBudgetWidth}%` }}
+          className={cn(
+            'absolute inset-y-0 left-0 rounded-l-full',
+            usagePercentage >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+          )}
+        />
+        {overflowWidth > 0 && (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${overflowWidth}%` }}
+            style={{ left: `${budgetMarkerPosition}%` }}
+            className="absolute inset-y-0 bg-red-500"
+          />
+        )}
+        <span
+          aria-hidden="true"
+          style={{ left: `${budgetMarkerPosition}%` }}
+          className="absolute inset-y-0 z-10 w-px bg-slate-700/70 dark:bg-white/80"
+        />
+      </div>
+      <div className="relative flex h-3 justify-between text-[9px] text-slate-400">
+        <span>0%</span>
+        {scaleMaximum > 100 ? (
+          <>
+            <span
+              style={{ left: `${budgetMarkerPosition}%` }}
+              className="absolute -translate-x-1/2 font-semibold text-slate-500"
+            >
+              100% límite
+            </span>
+            <span>{scaleMaximum}%</span>
+          </>
+        ) : (
+          <span className="font-semibold text-slate-500">100% límite</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function FinancialDashboardPage() {
   const [kpis, setKpis] = useState<FinancialDashboardKPIs | null>(null);
@@ -166,10 +234,7 @@ export default function FinancialDashboardPage() {
     },
   };
 
-  const visibleBudgetCategories =
-    budgetSummary?.expensesByCategory.filter(
-      (category) => category.amount > 0 || category.actualAmount > 0
-    ) ?? [];
+  const visibleBudgetCategories = budgetSummary?.expensesByCategory ?? [];
 
   // Preparar datos para el gráfico de barras apiladas (ingresos y gastos por mes)
   const monthNames = [
@@ -357,33 +422,6 @@ export default function FinancialDashboardPage() {
                   </div>
                 </div>
 
-                {/* Categorías excedidas */}
-                {budgetSummary.expensesByCategory.some(
-                  (cat) => cat.amount > 0 && cat.actualAmount > cat.amount
-                ) && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30">
-                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold text-sm mb-2">
-                      <TrendingUp className="h-4 w-4" />
-                      <span>Categorías Excedidas</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {budgetSummary.expensesByCategory
-                        .filter((cat) => cat.amount > 0 && cat.actualAmount > cat.amount)
-                        .map((cat, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded border border-red-50 dark:border-red-900/10"
-                          >
-                            <span className="text-xs font-semibold">{cat.categoryName}</span>
-                            <span className="text-xs font-bold text-red-600">
-                              +{formatCurrencyDisplay(cat.actualAmount - cat.amount)}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
                 {budgetSummary.unbudgetedCategoryCount > 0 && (
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <div className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-700 dark:text-amber-400">
@@ -544,8 +582,10 @@ export default function FinancialDashboardPage() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle>Gasto por categoría</CardTitle>
-                  <CardDescription>Presupuesto asignado contra gasto real del mes</CardDescription>
+                  <CardTitle>Presupuesto por categoría</CardTitle>
+                  <CardDescription>
+                    Todas las categorías, su consumo y el exceso sobre el 100%
+                  </CardDescription>
                 </div>
                 <button
                   type="button"
@@ -557,19 +597,13 @@ export default function FinancialDashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="flex-1">
-              <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
+              <div className="max-h-[460px] divide-y overflow-y-auto pr-1 dark:divide-slate-800">
                 {visibleBudgetCategories.map((category) => {
-                  const progress = category.isUnbudgeted
-                    ? 100
-                    : Math.min(category.usagePercentage, 100);
-                  const statusColor = category.isUnbudgeted
-                    ? 'bg-amber-500'
-                    : category.isOverBudget
-                      ? 'bg-red-500'
-                      : 'bg-emerald-500';
+                  const overPercentage = Math.max(category.usagePercentage - 100, 0);
+                  const hasNoBudget = !category.isBudgeted;
 
                   return (
-                    <div key={category.category} className="space-y-2">
+                    <div key={category.category} className="space-y-2.5 py-3 first:pt-0 last:pb-0">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -579,7 +613,7 @@ export default function FinancialDashboardPage() {
                             <span className="truncate text-sm font-semibold">
                               {category.categoryName}
                             </span>
-                            {category.isUnbudgeted ? (
+                            {hasNoBudget ? (
                               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
                                 Sin presupuesto
                               </span>
@@ -587,27 +621,34 @@ export default function FinancialDashboardPage() {
                               <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-400">
                                 Excedido
                               </span>
-                            ) : category.actualAmount > 0 ? (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                             ) : null}
                           </div>
                           <p className="mt-0.5 text-[11px] text-slate-500">
-                            {category.isUnbudgeted
+                            {hasNoBudget
                               ? `${formatCurrencyDisplay(category.actualAmount)} gastados sin asignación`
                               : `${formatCurrencyDisplay(category.actualAmount)} de ${formatCurrencyDisplay(category.amount)}`}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          {category.isUnbudgeted ? (
-                            <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                              No contemplado
-                            </span>
+                          {hasNoBudget ? (
+                            <>
+                              <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                {category.actualAmount > 0
+                                  ? formatCurrencyDisplay(category.actualAmount)
+                                  : formatCurrencyDisplay(0)}
+                              </p>
+                              <p className="text-[10px] text-amber-600">
+                                {category.actualAmount > 0 ? 'no contemplado' : 'sin asignar'}
+                              </p>
+                            </>
                           ) : category.isOverBudget ? (
                             <>
                               <p className="text-xs font-bold text-red-600">
                                 +{formatCurrencyDisplay(Math.abs(category.remainingAmount))}
                               </p>
-                              <p className="text-[10px] text-red-500">sobre presupuesto</p>
+                              <p className="text-[10px] text-red-500">
+                                +{overPercentage.toFixed(0)}% sobre el límite
+                              </p>
                             </>
                           ) : (
                             <>
@@ -620,25 +661,19 @@ export default function FinancialDashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
-                            className={cn('h-full rounded-full', statusColor)}
-                          />
-                        </div>
+                      <div className="grid grid-cols-[minmax(0,1fr)_3.25rem] items-start gap-2">
+                        <CategoryBudgetBar category={category} />
                         <span
                           className={cn(
-                            'w-12 text-right text-[10px] font-bold tabular-nums',
-                            category.isUnbudgeted
+                            'pt-0.5 text-right text-xs font-bold tabular-nums',
+                            hasNoBudget
                               ? 'text-amber-600'
                               : category.isOverBudget
                                 ? 'text-red-600'
-                                : 'text-slate-500'
+                                : 'text-slate-600 dark:text-slate-300'
                           )}
                         >
-                          {category.isUnbudgeted ? '—' : `${category.usagePercentage.toFixed(0)}%`}
+                          {hasNoBudget ? '—' : `${category.usagePercentage.toFixed(0)}%`}
                         </span>
                       </div>
                     </div>
