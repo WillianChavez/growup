@@ -5,6 +5,7 @@ import type {
   CashFlowStatement,
   DateRange,
   CategoryBreakdown,
+  OperatingCashFlowBreakdown,
   AssetBreakdown,
   DebtBreakdown,
   CashFlowItem,
@@ -356,7 +357,7 @@ export class FinancialReportsService {
 
     const transactions: TransactionWithCategory[] = transactionsRaw as TransactionWithCategory[];
 
-    const categoryMap = new Map<string, CategoryBreakdown>();
+    const categoryMap = new Map<string, OperatingCashFlowBreakdown>();
     let totalInflows = 0;
     let totalOutflows = 0;
 
@@ -365,12 +366,17 @@ export class FinancialReportsService {
       const categoryId = transaction.categoryId;
       const categoryName = transaction.category?.name || 'Sin categoría';
       const emoji = transaction.category?.emoji || '💰';
+      const direction = isIncome ? 'inflow' : 'outflow';
+      // Una categoría de tipo "both" puede contener ingresos y gastos. Separamos
+      // ambos movimientos para no mezclar entradas y salidas en la misma fila.
+      const breakdownKey = `${direction}:${categoryId}`;
 
-      if (!categoryMap.has(categoryId)) {
-        categoryMap.set(categoryId, {
+      if (!categoryMap.has(breakdownKey)) {
+        categoryMap.set(breakdownKey, {
           categoryId,
           categoryName,
           emoji,
+          direction,
           amount: 0,
           percentage: 0,
           transactionCount: 0,
@@ -378,7 +384,7 @@ export class FinancialReportsService {
         });
       }
 
-      const breakdown = categoryMap.get(categoryId)!;
+      const breakdown = categoryMap.get(breakdownKey)!;
 
       if (isIncome) {
         totalInflows = fromCents(toCents(totalInflows) + toCents(transaction.amount));

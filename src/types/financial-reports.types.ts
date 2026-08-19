@@ -17,6 +17,10 @@ export interface CategoryBreakdown {
   transactions?: Transaction[]; // Para drill-down
 }
 
+export interface OperatingCashFlowBreakdown extends CategoryBreakdown {
+  direction: 'inflow' | 'outflow';
+}
+
 export interface AssetBreakdown {
   id: string;
   name: string;
@@ -88,7 +92,7 @@ export interface CashFlowStatement {
     inflows: number;
     outflows: number;
     net: number;
-    details: CategoryBreakdown[];
+    details: OperatingCashFlowBreakdown[];
   };
   investing: {
     purchases: number; // Compra de activos

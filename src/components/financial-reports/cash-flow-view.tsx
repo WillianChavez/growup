@@ -11,8 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { DrillDownTable } from './drill-down-table';
 import { CashFlowChart } from './cash-flow-chart';
+import { OperatingCashFlowTable } from './operating-cash-flow-table';
 import type { CashFlowStatement } from '@/types/financial-reports.types';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,10 @@ interface CashFlowViewProps {
 
 export function CashFlowView({ data }: CashFlowViewProps) {
   const isPositiveFlow = data.netCashFlow >= 0;
+  const formatSignedCurrency = (amount: number) =>
+    amount === 0
+      ? formatCurrency(0)
+      : `${amount > 0 ? '+' : '−'} ${formatCurrency(Math.abs(amount))}`;
 
   const handleExportJSON = () => {
     const dataStr = JSON.stringify(data, null, 2);
@@ -117,7 +121,7 @@ export function CashFlowView({ data }: CashFlowViewProps) {
                 data.operations.net >= 0 ? 'text-emerald-600' : 'text-red-600'
               )}
             >
-              {formatCurrency(Math.abs(data.operations.net))}
+              {formatSignedCurrency(data.operations.net)}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Flujo operativo</p>
           </CardContent>
@@ -142,13 +146,13 @@ export function CashFlowView({ data }: CashFlowViewProps) {
               <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Entradas</p>
                 <p className="text-xl font-bold text-emerald-600">
-                  {formatCurrency(data.operations.inflows)}
+                  + {formatCurrency(data.operations.inflows)}
                 </p>
               </div>
               <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Salidas</p>
                 <p className="text-xl font-bold text-red-600">
-                  {formatCurrency(data.operations.outflows)}
+                  − {formatCurrency(data.operations.outflows)}
                 </p>
               </div>
               <div
@@ -166,16 +170,16 @@ export function CashFlowView({ data }: CashFlowViewProps) {
                     data.operations.net >= 0 ? 'text-blue-600' : 'text-orange-600'
                   )}
                 >
-                  {formatCurrency(data.operations.net)}
+                  {formatSignedCurrency(data.operations.net)}
                 </p>
               </div>
             </div>
 
-            <DrillDownTable
+            <OperatingCashFlowTable
               categories={data.operations.details}
-              total={data.operations.inflows + data.operations.outflows}
-              title=""
-              showTransactions={true}
+              inflows={data.operations.inflows}
+              outflows={data.operations.outflows}
+              net={data.operations.net}
             />
           </CardContent>
         </Card>
