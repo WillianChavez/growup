@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { hasAtMostTwoDecimals } from '@/lib/money';
 
 const MAX_IMPORT_ITEMS_PER_COLLECTION = 5000;
 const MAX_IMPORT_VERSION_LENGTH = 20;
@@ -8,12 +9,9 @@ const dateStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(v
 });
 
 const optionalStringSchema = z.string().nullable().optional();
-const moneyNumberSchema = z
-  .number()
-  .finite()
-  .refine((value) => Number.isInteger(value * 100), {
-    message: 'Los montos deben tener máximo 2 decimales',
-  });
+const moneyNumberSchema = z.number().finite().refine(hasAtMostTwoDecimals, {
+  message: 'Los montos deben tener máximo 2 decimales',
+});
 
 const habitCategorySchema = z
   .object({

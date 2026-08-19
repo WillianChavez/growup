@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { hasAtMostTwoDecimals } from '@/lib/money';
 
 const monetaryAmountSchema = z
   .number()
   .finite('El monto debe ser un número válido')
   .positive('El monto debe ser mayor a 0')
-  .refine((value) => Number.isInteger(value * 100), {
+  .refine(hasAtMostTwoDecimals, {
     message: 'El monto solo puede tener hasta 2 decimales',
   });
 
@@ -32,3 +33,9 @@ export const transactionSchema = z.object({
     .nonnegative('El interés no puede ser negativo')
     .optional(),
 });
+
+// El editar no permite convertir una transacción en abono a deuda, así que
+// debtId/debtInterest quedan fuera del esquema de actualización.
+export const transactionUpdateSchema = transactionSchema
+  .omit({ debtId: true, debtInterest: true })
+  .partial();

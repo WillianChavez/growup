@@ -1,7 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import type { Transaction, TransactionFormData } from '@/types/finance.types';
+
+// Los errores del servidor se muestran al usuario y se relanzan para que el
+// diálogo que llama no se cierre como si el guardado hubiera funcionado.
+async function readError(response: Response, fallback: string): Promise<string> {
+  try {
+    const result = await response.json();
+    return result?.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export function useTransactions() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +27,7 @@ export function useTransactions() {
       return result.data || [];
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      toast.error('No se pudieron cargar las transacciones');
       return [];
     } finally {
       setIsLoading(false);
@@ -29,12 +42,17 @@ export function useTransactions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to create transaction');
+      if (!response.ok) {
+        throw new Error(await readError(response, 'Error al crear transacción'));
+      }
       const result = await response.json();
+      toast.success(result.message || 'Transacción creada');
       return result.data || null;
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error de conexión';
       console.error('Error creating transaction:', error);
-      return null;
+      toast.error(message);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -51,12 +69,17 @@ export function useTransactions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to update transaction');
+      if (!response.ok) {
+        throw new Error(await readError(response, 'Error al actualizar transacción'));
+      }
       const result = await response.json();
+      toast.success(result.message || 'Transacción actualizada');
       return result.data || null;
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error de conexión';
       console.error('Error updating transaction:', error);
-      return null;
+      toast.error(message);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -68,9 +91,15 @@ export function useTransactions() {
       const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
       });
-      return response.ok;
+      if (!response.ok) {
+        throw new Error(await readError(response, 'Error al eliminar transacción'));
+      }
+      toast.success('Transacción eliminada');
+      return true;
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error de conexión';
       console.error('Error deleting transaction:', error);
+      toast.error(message);
       return false;
     } finally {
       setIsLoading(false);

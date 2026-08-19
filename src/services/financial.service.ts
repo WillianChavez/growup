@@ -126,6 +126,46 @@ export class FinancialService {
     return normalizeMoney(monthlyInterest);
   }
 
+  static async findDebtPaymentByTransaction(
+    userId: string,
+    transactionId: string
+  ): Promise<DebtPayment | null> {
+    const payment = await prisma.debtPayment.findFirst({
+      where: { userId, transactionId },
+    });
+    return payment as DebtPayment | null;
+  }
+
+  /**
+   * Al borrar el egreso asociado a un abono, deshace el abono: devuelve el
+   * capital al saldo de la deuda y reactiva la deuda si había quedado saldada.
+   */
+  static async revertDebtPaymentByTransaction(
+    userId: string,
+    transactionId: string
+  ): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      const payment = await tx.debtPayment.findFirst({
+        where: { userId, transactionId },
+      });
+      if (!payment) return;
+
+      const debt = await tx.debt.findFirst({ where: { id: payment.debtId, userId } });
+      if (debt) {
+        const restored = normalizeMoney(debt.remainingAmount + payment.principal);
+        await tx.debt.update({
+          where: { id: debt.id },
+          data: {
+            remainingAmount: restored,
+            ...(restored > 0 && debt.status === 'paid' ? { status: 'active', paidDate: null } : {}),
+          },
+        });
+      }
+
+      await tx.debtPayment.delete({ where: { id: payment.id } });
+    });
+  }
+
   static async getDebtPayments(userId: string, debtId?: string): Promise<DebtPayment[]> {
     const payments = await prisma.debtPayment.findMany({
       where: { userId, ...(debtId ? { debtId } : {}) },

@@ -17,6 +17,7 @@ import {
   PieChart,
   CreditCard,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -97,10 +98,15 @@ export default function FinancePage() {
     await loadTransactions();
   };
 
+  const handleRequestDelete = (transactionId: string) => {
+    setTransactionToDelete(transactionId);
+    setDeleteDialogOpen(true);
+  };
+
   const handleConfirmDelete = async () => {
     if (transactionToDelete) {
-      await deleteTransaction(transactionToDelete);
-      await loadTransactions();
+      const deleted = await deleteTransaction(transactionToDelete);
+      if (deleted) await loadTransactions();
       setTransactionToDelete(null);
     }
   };
@@ -654,6 +660,17 @@ export default function FinancePage() {
                             {isIncome ? '+' : '-'}
                             {formatCurrencyDisplay(transaction.amount)}
                           </p>
+                          <button
+                            type="button"
+                            aria-label="Eliminar transacción"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRequestDelete(transaction.id);
+                            }}
+                            className="p-2 rounded-xl text-slate-300 dark:text-slate-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                           <ChevronRight
                             size={18}
                             className="text-slate-200 dark:text-slate-700 lg:group-hover:text-slate-400 dark:lg:group-hover:text-slate-500 transition-colors"
