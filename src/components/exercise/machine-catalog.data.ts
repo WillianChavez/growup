@@ -1,3 +1,5 @@
+import type { ExerciseTracking } from '@/types/exercise.types';
+
 export type MachineCategory = 'piernas' | 'torso' | 'brazos' | 'core' | 'multifuncional' | 'cardio';
 
 export interface GymMachine {
@@ -10,6 +12,8 @@ export interface GymMachine {
   /** Músculo principal primero; los demás son secundarios. */
   muscles: string[];
   description: string;
+  /** Cómo se registra el progreso. Ausente equivale a `weight`. */
+  tracking?: ExerciseTracking;
 }
 
 const machineImagePair = (exerciseId: string): [string, string] => [
@@ -336,6 +340,7 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     category: 'core',
     muscles: ['Erectores espinales', 'Glúteos'],
     description: 'Extiende el torso de forma controlada para fortalecer la zona lumbar.',
+    tracking: 'reps',
   },
   {
     id: 'shoulder-press',
@@ -451,6 +456,138 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     description: 'Eleva los hombros verticalmente con los brazos extendidos y sin girarlos.',
   },
   {
+    id: 'rompecraneos-barra-z',
+    name: 'Rompecráneos con barra Z',
+    alias: 'EZ-bar skullcrusher',
+    images: machineImagePair('rompecraneos-barra-z'),
+    category: 'brazos',
+    muscles: ['Tríceps'],
+    description:
+      'Acostado en el banco, baja la barra Z hacia la frente flexionando solo los codos y extiende sin mover los hombros.',
+  },
+  {
+    id: 'press-frances-sentado',
+    name: 'Press francés sentado con barra Z',
+    alias: 'Seated EZ-bar french press',
+    images: machineImagePair('press-frances-sentado'),
+    category: 'brazos',
+    muscles: ['Tríceps'],
+    description:
+      'Sentado, baja la barra Z por detrás de la cabeza y extiende los codos manteniéndolos cerca.',
+  },
+  {
+    id: 'fondos-en-banco',
+    name: 'Fondos en banco',
+    alias: 'Bench dips',
+    images: machineImagePair('fondos-en-banco'),
+    category: 'brazos',
+    muscles: ['Tríceps', 'Deltoide anterior', 'Pectorales'],
+    description:
+      'Con las manos en el borde del banco, baja el cuerpo flexionando los codos y empuja hasta extenderlos.',
+    tracking: 'reps',
+  },
+  {
+    id: 'fondos-en-paralelas',
+    name: 'Fondos en paralelas',
+    alias: 'Parallel bar dip',
+    images: machineImagePair('fondos-en-paralelas'),
+    category: 'brazos',
+    muscles: ['Tríceps', 'Pectoral inferior', 'Deltoide anterior'],
+    description:
+      'Sostén el cuerpo en las barras, baja con el torso vertical y empuja hasta extender los codos.',
+    tracking: 'reps',
+  },
+  {
+    id: 'pushdown-barra-v',
+    name: 'Pushdown de tríceps con barra V',
+    alias: 'V-bar triceps pushdown',
+    images: machineImagePair('pushdown-barra-v'),
+    category: 'brazos',
+    muscles: ['Tríceps'],
+    description:
+      'Extiende los codos empujando la barra V hacia abajo con los brazos junto al torso.',
+  },
+  {
+    id: 'curl-barra-z',
+    name: 'Curl con barra Z',
+    alias: 'EZ-bar curl',
+    images: machineImagePair('curl-barra-z'),
+    category: 'brazos',
+    muscles: ['Bíceps braquial', 'Braquiorradial'],
+    description:
+      'Flexiona los codos con la barra Z sin balancear el torso; el agarre inclinado cuida las muñecas.',
+  },
+  {
+    id: 'curl-barra-recta',
+    name: 'Curl con barra recta',
+    alias: 'Barbell curl',
+    images: machineImagePair('curl-barra-recta'),
+    category: 'brazos',
+    muscles: ['Bíceps braquial', 'Braquial anterior'],
+    description:
+      'Sube la barra flexionando los codos con los brazos pegados al torso y sin impulso.',
+  },
+  {
+    id: 'curl-predicador',
+    name: 'Curl en banco predicador',
+    alias: 'Preacher curl',
+    images: machineImagePair('curl-predicador'),
+    category: 'brazos',
+    muscles: ['Bíceps braquial'],
+    description:
+      'Con los brazos apoyados en el atril inclinado, flexiona los codos sin despegar los tríceps.',
+  },
+  {
+    id: 'curl-arana',
+    name: 'Curl araña',
+    alias: 'Spider curl',
+    images: machineImagePair('curl-arana'),
+    category: 'brazos',
+    muscles: ['Bíceps braquial'],
+    description:
+      'Boca abajo sobre el banco inclinado, sube la barra con los brazos colgando en vertical.',
+  },
+  {
+    id: 'curl-invertido',
+    name: 'Curl invertido con barra',
+    alias: 'Reverse barbell curl',
+    images: machineImagePair('curl-invertido'),
+    category: 'brazos',
+    muscles: ['Braquiorradial', 'Bíceps braquial', 'Antebrazos'],
+    description:
+      'Toma la barra con las palmas hacia abajo y flexiona los codos para cargar el antebrazo.',
+  },
+  {
+    id: 'press-militar-barra',
+    name: 'Press militar con barra',
+    alias: 'Standing military press',
+    images: machineImagePair('press-militar-barra'),
+    category: 'brazos',
+    muscles: ['Deltoide anterior', 'Deltoide lateral', 'Tríceps'],
+    description:
+      'De pie, empuja la barra desde los hombros hasta arriba con el core firme y sin arquear la espalda.',
+  },
+  {
+    id: 'face-pull',
+    name: 'Face pull con cuerda',
+    alias: 'Face pull',
+    images: machineImagePair('face-pull'),
+    category: 'brazos',
+    muscles: ['Deltoide posterior', 'Trapecio', 'Romboides'],
+    description:
+      'Jala la cuerda hacia la cara con los codos altos y abre las manos al final del recorrido.',
+  },
+  {
+    id: 'encogimientos-barra',
+    name: 'Encogimientos con barra',
+    alias: 'Barbell shrug',
+    images: machineImagePair('encogimientos-barra'),
+    category: 'brazos',
+    muscles: ['Trapecio superior'],
+    description:
+      'Eleva los hombros hacia las orejas con los brazos extendidos, sin flexionar codos.',
+  },
+  {
     id: 'smith',
     machineNumber: '60',
     name: 'Smith',
@@ -470,6 +607,7 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     category: 'multifuncional',
     muscles: ['Dorsales', 'Bíceps', 'Pectorales', 'Tríceps'],
     description: 'El contrapeso facilita dominadas y fondos mientras desarrollas fuerza.',
+    tracking: 'reps',
   },
   {
     id: 'dual-cable-cross',
@@ -499,6 +637,7 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     category: 'cardio',
     muscles: ['Piernas', 'Glúteos', 'Sistema cardiovascular'],
     description: 'Permite caminar o correr ajustando velocidad e inclinación.',
+    tracking: 'minutes',
   },
   {
     id: 'bicicleta-ergometrica',
@@ -508,6 +647,7 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     category: 'cardio',
     muscles: ['Cuádriceps', 'Glúteos', 'Pantorrillas'],
     description: 'Cardio de bajo impacto con resistencia regulable desde el panel.',
+    tracking: 'minutes',
   },
   {
     id: 'eliptica',
@@ -517,6 +657,7 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     category: 'cardio',
     muscles: ['Piernas', 'Glúteos', 'Brazos'],
     description: 'Movimiento continuo de cuerpo completo con bajo impacto articular.',
+    tracking: 'minutes',
   },
   {
     id: 'remo-indoor',
@@ -527,5 +668,39 @@ export const SMARTFIT_MACHINES: GymMachine[] = [
     muscles: ['Espalda', 'Piernas', 'Core', 'Brazos'],
     description:
       'Combina empuje de piernas y jalón del torso en un ejercicio cardiovascular completo.',
+    tracking: 'minutes',
+  },
+  {
+    id: 'escaladora',
+    name: 'Escaladora',
+    alias: 'Stairmaster',
+    images: machineImagePair('escaladora'),
+    category: 'cardio',
+    muscles: ['Piernas', 'Glúteos', 'Sistema cardiovascular'],
+    description:
+      'Sube escalones continuos manteniendo el torso erguido y sin colgarte de los apoyos.',
+    tracking: 'minutes',
+  },
+  {
+    id: 'bicicleta-reclinada',
+    name: 'Bicicleta reclinada',
+    alias: 'Recumbent bike',
+    images: machineImagePair('bicicleta-reclinada'),
+    category: 'cardio',
+    muscles: ['Piernas', 'Glúteos', 'Sistema cardiovascular'],
+    description:
+      'Pedalea con la espalda apoyada en el respaldo; descarga la zona lumbar y las rodillas.',
+    tracking: 'minutes',
+  },
+  {
+    id: 'air-bike',
+    name: 'Air bike',
+    alias: 'Bicicleta de aire',
+    images: machineImagePair('air-bike'),
+    category: 'cardio',
+    muscles: ['Piernas', 'Espalda', 'Brazos', 'Sistema cardiovascular'],
+    description:
+      'Pedalea y empuja las palancas a la vez; la resistencia del aire sube con tu propio ritmo.',
+    tracking: 'minutes',
   },
 ];

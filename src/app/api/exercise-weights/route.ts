@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json<ApiResponse<ExerciseWeightRecord>>(
-      { success: true, data: record, message: 'Peso guardado' },
+      { success: true, data: record, message: 'Registro guardado' },
       { status: 201 }
     );
   } catch (error) {

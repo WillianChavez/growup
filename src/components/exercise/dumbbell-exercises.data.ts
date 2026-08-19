@@ -1,3 +1,5 @@
+import type { ExerciseTracking } from '@/types/exercise.types';
+
 export type DumbbellCategory =
   | 'pecho'
   | 'espalda'
@@ -20,6 +22,8 @@ export interface DumbbellExercise {
   difficulty: ExerciseDifficulty;
   description: string;
   weightLabel?: string;
+  /** Cómo se registra el progreso. Ausente equivale a `weight`. */
+  tracking?: ExerciseTracking;
 }
 
 export const DUMBBELL_CATEGORY_LABELS: Record<DumbbellCategory, string> = {
@@ -114,7 +118,7 @@ export const DUMBBELL_EXERCISES: DumbbellExercise[] = [
     difficulty: 'intermediate',
     description:
       'Usa las mancuernas como soportes para mantener las muñecas neutras y ampliar el recorrido de la flexión.',
-    weightLabel: 'Peso corporal o añadido',
+    tracking: 'reps',
   },
   {
     id: 'pullover-mancuerna',
@@ -220,6 +224,17 @@ export const DUMBBELL_EXERCISES: DumbbellExercise[] = [
     difficulty: 'beginner',
     description:
       'Inclina el torso y abre los brazos para trabajar hombros posteriores y espalda alta.',
+  },
+  {
+    id: 'remo-al-menton-mancuernas',
+    name: 'Remo al mentón con mancuernas',
+    alias: 'Standing dumbbell upright row',
+    images: imagePair('remo-al-menton'),
+    category: 'hombros',
+    muscles: ['Trapecio superior', 'Deltoide lateral', 'Bíceps'],
+    difficulty: 'intermediate',
+    description:
+      'Sube las mancuernas pegadas al torso llevando los codos altos, sin pasar de la altura de los hombros.',
   },
   {
     id: 'curl-biceps',

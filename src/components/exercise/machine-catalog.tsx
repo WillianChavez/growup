@@ -21,7 +21,11 @@ import {
   type GymMachine,
   type MachineCategory,
 } from '@/components/exercise/machine-catalog.data';
-import type { ExerciseType, ExerciseWeightRecord, WeightUnit } from '@/types/exercise.types';
+import type {
+  ExerciseRecordUnit,
+  ExerciseType,
+  ExerciseWeightRecord,
+} from '@/types/exercise.types';
 
 type CatalogItem =
   | { kind: 'machine'; category: MachineCategory; data: GymMachine }
@@ -45,6 +49,17 @@ const CATEGORY_ORDER: MachineCategory[] = [
   'multifuncional',
   'cardio',
 ];
+
+/** Cómo se nombra el registro en los avisos, según lo que se guardó. */
+const RECORD_MESSAGES: Record<ExerciseRecordUnit, { saved: string; failed: string }> = {
+  kg: { saved: 'Peso guardado en tu historial', failed: 'No se pudo guardar el peso' },
+  lb: { saved: 'Peso guardado en tu historial', failed: 'No se pudo guardar el peso' },
+  reps: {
+    saved: 'Repeticiones guardadas en tu historial',
+    failed: 'No se pudieron guardar las repeticiones',
+  },
+  min: { saved: 'Minutos guardados en tu historial', failed: 'No se pudieron guardar los minutos' },
+};
 
 const BODY_PART_KEYWORDS: Record<Exclude<BodyPartId, 'cardio'>, string[]> = {
   shoulders: ['deltoide', 'hombro'],
@@ -322,7 +337,7 @@ function MachineCard({
   onToggleFavorite: () => void;
   weightRecords: ExerciseWeightRecord[];
   isSavingWeight: boolean;
-  onSaveWeight: (weight: number, unit: WeightUnit) => Promise<boolean>;
+  onSaveWeight: (value: number, unit: ExerciseRecordUnit) => Promise<boolean>;
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:bg-slate-950 dark:hover:border-slate-700">
@@ -357,16 +372,15 @@ function MachineCard({
           <PrimaryMuscleBadge muscles={machine.muscles} />
         </div>
 
-        {machine.category !== 'cardio' && (
-          <ExerciseWeightInput
-            key={weightRecords[0]?.id ?? machine.id}
-            exerciseName={machine.name}
-            latestRecord={weightRecords[0]}
-            recordCount={weightRecords.length}
-            isSaving={isSavingWeight}
-            onSave={onSaveWeight}
-          />
-        )}
+        <ExerciseWeightInput
+          key={weightRecords[0]?.id ?? machine.id}
+          exerciseName={machine.name}
+          tracking={machine.tracking}
+          latestRecord={weightRecords[0]}
+          recordCount={weightRecords.length}
+          isSaving={isSavingWeight}
+          onSave={onSaveWeight}
+        />
       </div>
     </article>
   );
@@ -391,7 +405,7 @@ function DumbbellCard({
   onToggleFavorite: () => void;
   weightRecords: ExerciseWeightRecord[];
   isSavingWeight: boolean;
-  onSaveWeight: (weight: number, unit: WeightUnit) => Promise<boolean>;
+  onSaveWeight: (value: number, unit: ExerciseRecordUnit) => Promise<boolean>;
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:bg-slate-950 dark:hover:border-slate-700">
@@ -424,7 +438,12 @@ function DumbbellCard({
         <ExerciseWeightInput
           key={weightRecords[0]?.id ?? exercise.id}
           exerciseName={exercise.name}
-          label={exercise.weightLabel ?? 'Peso por mancuerna'}
+          tracking={exercise.tracking}
+          label={
+            exercise.tracking && exercise.tracking !== 'weight'
+              ? undefined
+              : (exercise.weightLabel ?? 'Peso por mancuerna')
+          }
           latestRecord={weightRecords[0]}
           recordCount={weightRecords.length}
           isSaving={isSavingWeight}
@@ -525,26 +544,27 @@ export function MachineCatalog({ bodyPart }: { bodyPart: BodyPartId }) {
   const saveExerciseWeight = async (
     exerciseType: ExerciseType,
     exerciseId: string,
-    weight: number,
-    unit: WeightUnit
+    value: number,
+    unit: ExerciseRecordUnit
   ): Promise<boolean> => {
     const exerciseKey = `${exerciseType}-${exerciseId}`;
+    const messages = RECORD_MESSAGES[unit];
     setSavingExerciseKey(exerciseKey);
 
     try {
       const response = await fetch('/api/exercise-weights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exerciseType, exerciseId, weight, unit }),
+        body: JSON.stringify({ exerciseType, exerciseId, weight: value, unit }),
       });
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'No se pudo guardar el peso');
+        throw new Error(result.error || messages.failed);
       }
 
       setWeightRecords((currentRecords) => [result.data, ...currentRecords]);
-      toast.success('Peso guardado en tu historial');
+      toast.success(messages.saved);
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error al guardar el peso');

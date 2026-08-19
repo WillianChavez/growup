@@ -80,6 +80,24 @@ export interface WeightGoalSync {
 }
 
 export type WeightUnit = 'kg' | 'lb';
+
+/**
+ * Cómo se registra el progreso de un ejercicio:
+ * - `weight`: peso levantado (kg/lb). Es el valor por defecto.
+ * - `reps`: repeticiones por set, para ejercicios de peso corporal o asistidos.
+ * - `minutes`: minutos de sesión, para cardio.
+ */
+export type ExerciseTracking = 'weight' | 'reps' | 'minutes';
+
+/** Unidad guardada en el registro; `reps` y `min` no llevan peso asociado. */
+export type ExerciseRecordUnit = WeightUnit | 'reps' | 'min';
+
+export const TRACKING_UNIT: Record<ExerciseTracking, ExerciseRecordUnit | null> = {
+  weight: null, // la elige el usuario entre kg y lb
+  reps: 'reps',
+  minutes: 'min',
+};
+
 export type ExerciseType = 'machine' | 'dumbbell';
 
 export interface ExerciseWeightRecord {
@@ -88,7 +106,7 @@ export interface ExerciseWeightRecord {
   exerciseId: string;
   exerciseType: ExerciseType;
   weight: number;
-  unit: WeightUnit;
+  unit: ExerciseRecordUnit;
   weightKg: number;
   recordedAt: string;
   createdAt: string;

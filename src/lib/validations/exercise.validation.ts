@@ -41,15 +41,30 @@ export const bodyMetricSchema = bodyMetricBase.refine(
 
 export const bodyMetricUpdateSchema = bodyMetricBase.partial();
 
-export const exerciseWeightSchema = z.object({
-  exerciseId: z
-    .string()
-    .min(1, 'El ejercicio es requerido')
-    .max(100, 'Identificador de ejercicio inválido'),
-  exerciseType: z.enum(['machine', 'dumbbell'], { error: 'Tipo de ejercicio inválido' }),
-  weight: z
-    .number({ error: 'Ingresa un peso válido' })
-    .positive('El peso debe ser mayor que cero')
-    .max(2000, 'El peso no puede superar 2000'),
-  unit: z.enum(['kg', 'lb'], { error: 'Selecciona kg o lb' }),
-});
+// Los ejercicios de peso corporal guardan repeticiones por set y los de cardio
+// minutos de sesión; en ambos casos el valor va en `weight` y `unit` lo distingue.
+export const exerciseWeightSchema = z
+  .object({
+    exerciseId: z
+      .string()
+      .min(1, 'El ejercicio es requerido')
+      .max(100, 'Identificador de ejercicio inválido'),
+    exerciseType: z.enum(['machine', 'dumbbell'], { error: 'Tipo de ejercicio inválido' }),
+    weight: z
+      .number({ error: 'Ingresa un valor válido' })
+      .positive('El valor debe ser mayor que cero')
+      .max(2000, 'El valor no puede superar 2000'),
+    unit: z.enum(['kg', 'lb', 'reps', 'min'], { error: 'Unidad de registro inválida' }),
+  })
+  .refine((data) => data.unit !== 'reps' || Number.isInteger(data.weight), {
+    message: 'Las repeticiones deben ser un número entero',
+    path: ['weight'],
+  })
+  .refine((data) => data.unit !== 'reps' || data.weight <= 500, {
+    message: 'Las repeticiones no pueden superar 500',
+    path: ['weight'],
+  })
+  .refine((data) => data.unit !== 'min' || data.weight <= 600, {
+    message: 'Los minutos no pueden superar 600',
+    path: ['weight'],
+  });

@@ -1,12 +1,16 @@
 import { prisma } from '@/lib/db';
 import type { ExerciseWeightRecord as PrismaExerciseWeightRecord } from '@prisma/client';
-import type { ExerciseType, ExerciseWeightRecord, WeightUnit } from '@/types/exercise.types';
+import type {
+  ExerciseRecordUnit,
+  ExerciseType,
+  ExerciseWeightRecord,
+} from '@/types/exercise.types';
 
 interface CreateExerciseWeightData {
   exerciseId: string;
   exerciseType: ExerciseType;
   weight: number;
-  unit: WeightUnit;
+  unit: ExerciseRecordUnit;
 }
 
 const POUNDS_PER_KILOGRAM = 2.2046226218;
@@ -15,7 +19,7 @@ function serializeRecord(record: PrismaExerciseWeightRecord): ExerciseWeightReco
   return {
     ...record,
     exerciseType: record.exerciseType as ExerciseType,
-    unit: record.unit as WeightUnit,
+    unit: record.unit as ExerciseRecordUnit,
     recordedAt: record.recordedAt.toISOString(),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
@@ -27,7 +31,10 @@ export class ExerciseWeightService {
     userId: string,
     data: CreateExerciseWeightData
   ): Promise<ExerciseWeightRecord> {
-    const weightKg = data.unit === 'kg' ? data.weight : data.weight / POUNDS_PER_KILOGRAM;
+    // Solo los registros de peso real alimentan weightKg; reps y minutos quedan en 0
+    // para que las comparaciones y gráficas de carga no los mezclen.
+    const weightKg =
+      data.unit === 'kg' ? data.weight : data.unit === 'lb' ? data.weight / POUNDS_PER_KILOGRAM : 0;
 
     const record = await prisma.exerciseWeightRecord.create({
       data: {

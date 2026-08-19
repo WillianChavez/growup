@@ -4,16 +4,53 @@ import { useState } from 'react';
 import { LoaderCircle, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { ExerciseWeightRecord, WeightUnit } from '@/types/exercise.types';
+import type {
+  ExerciseRecordUnit,
+  ExerciseTracking,
+  ExerciseWeightRecord,
+  WeightUnit,
+} from '@/types/exercise.types';
 
 interface ExerciseWeightInputProps {
   exerciseName: string;
   label?: string;
+  tracking?: ExerciseTracking;
   latestRecord?: ExerciseWeightRecord;
   recordCount: number;
   isSaving: boolean;
-  onSave: (weight: number, unit: WeightUnit) => Promise<boolean>;
+  onSave: (value: number, unit: ExerciseRecordUnit) => Promise<boolean>;
 }
+
+/** Textos y límites del campo según lo que se registre en cada ejercicio. */
+const TRACKING_CONFIG: Record<
+  ExerciseTracking,
+  { label: string; placeholder: string; min: string; max: string; step: string; suffix: string }
+> = {
+  weight: {
+    label: 'Peso levantado',
+    placeholder: 'Peso',
+    min: '0.1',
+    max: '2000',
+    step: '0.1',
+    suffix: '',
+  },
+  reps: {
+    label: 'Repeticiones por set',
+    placeholder: 'Reps',
+    min: '1',
+    max: '500',
+    step: '1',
+    suffix: 'reps',
+  },
+  minutes: {
+    label: 'Minutos de sesión',
+    placeholder: 'Minutos',
+    min: '1',
+    max: '600',
+    step: '1',
+    suffix: 'min',
+  },
+};
 
 function formatRecordDate(value: string) {
   return new Intl.DateTimeFormat('es-SV', {
@@ -25,22 +62,42 @@ function formatRecordDate(value: string) {
 
 export function ExerciseWeightInput({
   exerciseName,
-  label = 'Peso levantado',
+  label,
+  tracking = 'weight',
   latestRecord,
   recordCount,
   isSaving,
   onSave,
 }: ExerciseWeightInputProps) {
-  const [weight, setWeight] = useState('');
-  const [unit, setUnit] = useState<WeightUnit>(latestRecord?.unit ?? 'kg');
+  const config = TRACKING_CONFIG[tracking];
+  const [value, setValue] = useState('');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(() =>
+    latestRecord?.unit === 'lb' ? 'lb' : 'kg'
+  );
+
+  const fieldLabel = label ?? config.label;
+  const isWeightMode = tracking === 'weight';
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const numericWeight = Number(weight);
-    if (!Number.isFinite(numericWeight) || numericWeight <= 0) return;
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue <= 0) return;
+    if (!isWeightMode && !Number.isInteger(numericValue)) return;
 
-    if (await onSave(numericWeight, unit)) setWeight('');
+    const unit: ExerciseRecordUnit = isWeightMode
+      ? weightUnit
+      : tracking === 'reps'
+        ? 'reps'
+        : 'min';
+
+    if (await onSave(numericValue, unit)) setValue('');
   };
+
+  const isInvalid =
+    !value ||
+    Number(value) <= 0 ||
+    (!isWeightMode && !Number.isInteger(Number(value))) ||
+    Number(value) > Number(config.max);
 
   return (
     <div className="border-t pt-2.5">
@@ -66,34 +123,40 @@ export function ExerciseWeightInput({
       <form onSubmit={handleSubmit} className="flex gap-1.5">
         <Input
           type="number"
-          inputMode="decimal"
-          min="0.1"
-          max="2000"
-          step="0.1"
+          inputMode={isWeightMode ? 'decimal' : 'numeric'}
+          min={config.min}
+          max={config.max}
+          step={config.step}
           required
-          aria-label={`${label} en ${exerciseName}`}
-          placeholder="Peso"
-          value={weight}
-          onChange={(event) => setWeight(event.target.value)}
+          aria-label={`${fieldLabel} en ${exerciseName}`}
+          placeholder={config.placeholder}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
           disabled={isSaving}
           className="h-8 min-w-0 flex-1 text-xs"
         />
-        <select
-          aria-label={`Unidad de peso para ${exerciseName}`}
-          value={unit}
-          onChange={(event) => setUnit(event.target.value as WeightUnit)}
-          disabled={isSaving}
-          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
-        >
-          <option value="kg">kg</option>
-          <option value="lb">lb</option>
-        </select>
+        {isWeightMode ? (
+          <select
+            aria-label={`Unidad de peso para ${exerciseName}`}
+            value={weightUnit}
+            onChange={(event) => setWeightUnit(event.target.value as WeightUnit)}
+            disabled={isSaving}
+            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
+          >
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+          </select>
+        ) : (
+          <span className="flex h-8 shrink-0 items-center rounded-md border border-input px-2 text-xs text-slate-500 dark:text-slate-400">
+            {config.suffix}
+          </span>
+        )}
         <Button
           type="submit"
           size="icon-sm"
-          disabled={isSaving || !weight || Number(weight) <= 0}
-          aria-label={`Guardar peso para ${exerciseName}`}
-          title="Guardar peso"
+          disabled={isSaving || isInvalid}
+          aria-label={`Guardar ${fieldLabel.toLowerCase()} para ${exerciseName}`}
+          title={`Guardar ${fieldLabel.toLowerCase()}`}
           className="bg-violet-600 text-white hover:bg-violet-700"
         >
           {isSaving ? <LoaderCircle className="animate-spin" /> : <Save />}
